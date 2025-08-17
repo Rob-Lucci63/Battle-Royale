@@ -3,27 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>Happy Coin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <style>
-    body { font-family: sans-serif; background: #1f2937; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-    h1 { font-size: 2rem; margin-bottom: 20px; }
-    .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; margin: 5px; }
+    body { font-family: sans-serif; background: #1f2937; color: white; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    #menu, #game { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 400px; padding: 20px; box-sizing: border-box; }
+    h1 { font-size: 2rem; margin-bottom: 20px; text-align: center; }
+    .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; margin: 5px; width: 100%; max-width: 200px; }
+    .start { background: #2563eb; }
+    .start:hover { background: #1d4ed8; }
     .buy { background: #16a34a; }
     .buy:hover { background: #15803d; }
     .sell { background: #dc2626; }
     .sell:hover { background: #b91c1c; }
-    canvas { border: 1px solid #4b5563; border-radius: 5px; margin-top: 20px; }
+    canvas { border: 1px solid #4b5563; border-radius: 5px; margin-top: 20px; width: 100%; height: 200px; }
+    p { margin: 5px 0; text-align: center; }
   </style>
 </head>
 <body>
-  <h1>🎮 Happy Coin</h1>
-  <p id="coins">💰 موجودی: 100 HC</p>
-  <p id="owned">🪙 داری: 0 HC</p>
-  <p id="price">قیمت فعلی: 10 HC</p>
-  <div>
-    <button class="btn buy" onclick="buy()">خرید</button>
-    <button class="btn sell" onclick="sell()">فروش</button>
+  <div id="menu">
+    <h1>🎮 Happy Coin: بورس وار</h1>
+    <button class="btn start" onclick="startGame()">شروع بازی</button>
   </div>
-  <canvas id="chart" width="400" height="200"></canvas>
+
+  <div id="game">
+    <h1>🎮 Happy Coin</h1>
+    <p id="coins">💰 موجودی: 100 HC</p>
+    <p id="owned">🪙 داری: 0 HC</p>
+    <p id="price">قیمت فعلی: 10 HC</p>
+    <div style="display:flex; gap:10px; flex-wrap: wrap; justify-content: center;">
+      <button class="btn buy" onclick="buy()">خرید</button>
+      <button class="btn sell" onclick="sell()">فروش</button>
+    </div>
+    <canvas id="chart"></canvas>
+  </div>
 
   <script>
     let coins = 100;
@@ -31,28 +43,42 @@
     let price = 10;
     let priceHistory = [];
 
-    // بارگذاری ذخیره‌شده
-    const saved = localStorage.getItem("happyCoinSave");
-    if(saved){
-      const data = JSON.parse(saved);
-      coins = data.coins;
-      owned = data.owned;
-      price = data.price;
-      priceHistory = data.priceHistory || [];
-    }
-
+    const menuDiv = document.getElementById("menu");
+    const gameDiv = document.getElementById("game");
     const coinsEl = document.getElementById("coins");
     const ownedEl = document.getElementById("owned");
     const priceEl = document.getElementById("price");
     const canvas = document.getElementById("chart");
     const ctx = canvas.getContext("2d");
 
+    function startGame(){
+      menuDiv.style.display = "none";
+      gameDiv.style.display = "flex";
+      loadSave();
+      updateDisplay();
+    }
+
+    function loadSave(){
+      const saved = localStorage.getItem("happyCoinSave");
+      if(saved){
+        const data = JSON.parse(saved);
+        coins = data.coins;
+        owned = data.owned;
+        price = data.price;
+        priceHistory = data.priceHistory || [];
+      }
+    }
+
+    function saveGame(){
+      localStorage.setItem("happyCoinSave", JSON.stringify({coins, owned, price, priceHistory}));
+    }
+
     function updateDisplay(){
       coinsEl.textContent = `💰 موجودی: ${coins} HC`;
       ownedEl.textContent = `🪙 داری: ${owned} HC`;
       priceEl.textContent = `قیمت فعلی: ${price} HC`;
       drawChart();
-      localStorage.setItem("happyCoinSave", JSON.stringify({coins, owned, price, priceHistory}));
+      saveGame();
     }
 
     function buy(){
@@ -84,20 +110,43 @@
       if(priceHistory.length<2) return;
       const maxPrice = Math.max(...priceHistory);
       const minPrice = Math.min(...priceHistory);
+
+      // رسم منحنی با نقاط
       ctx.beginPath();
       priceHistory.forEach((p,i)=>{
         const x = (i/(priceHistory.length-1))*canvas.width;
         const y = canvas.height - ((p - minPrice)/(maxPrice-minPrice||1))*canvas.height;
         if(i===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
+        else {
+          const prevX = ((i-1)/(priceHistory.length-1))*canvas.width;
+          const prevY = canvas.height - ((priceHistory[i-1] - minPrice)/(maxPrice-minPrice||1))*canvas.height;
+          const midX = (prevX + x)/2;
+          const midY = (prevY + y)/2;
+          ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+        }
       });
       ctx.strokeStyle = "#4BC0C0";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = "#06b6d4";
+      ctx.shadowBlur = 5;
       ctx.stroke();
+
+      // نقاط کوچک روی خط
+      priceHistory.forEach((p,i)=>{
+        const x = (i/(priceHistory.length-1))*canvas.width;
+        const y = canvas.height - ((p - minPrice)/(maxPrice-minPrice||1))*canvas.height;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2*Math.PI);
+        ctx.fillStyle = "#22d3ee";
+        ctx.fill();
+      });
     }
 
-    setInterval(updatePrice,1500);
-    updateDisplay();
+    setInterval(() => {
+      if(gameDiv.style.display === "flex") updatePrice();
+    },1500);
+
+    menuDiv.style.display = "flex";
   </script>
 </body>
 </html>
