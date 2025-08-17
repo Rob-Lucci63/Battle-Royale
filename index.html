@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>Happy Coin</title>
+  <style>
+    body { font-family: sans-serif; background: #1f2937; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+    h1 { font-size: 2rem; margin-bottom: 20px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; margin: 5px; }
+    .buy { background: #16a34a; }
+    .buy:hover { background: #15803d; }
+    .sell { background: #dc2626; }
+    .sell:hover { background: #b91c1c; }
+    canvas { border: 1px solid #4b5563; border-radius: 5px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>🎮 Happy Coin</h1>
+  <p id="coins">💰 موجودی: 100 HC</p>
+  <p id="owned">🪙 داری: 0 HC</p>
+  <p id="price">قیمت فعلی: 10 HC</p>
+  <div>
+    <button class="btn buy" onclick="buy()">خرید</button>
+    <button class="btn sell" onclick="sell()">فروش</button>
+  </div>
+  <canvas id="chart" width="400" height="200"></canvas>
+
+  <script>
+    let coins = 100;
+    let owned = 0;
+    let price = 10;
+    let priceHistory = [];
+
+    // بارگذاری ذخیره‌شده
+    const saved = localStorage.getItem("happyCoinSave");
+    if(saved){
+      const data = JSON.parse(saved);
+      coins = data.coins;
+      owned = data.owned;
+      price = data.price;
+      priceHistory = data.priceHistory || [];
+    }
+
+    const coinsEl = document.getElementById("coins");
+    const ownedEl = document.getElementById("owned");
+    const priceEl = document.getElementById("price");
+    const canvas = document.getElementById("chart");
+    const ctx = canvas.getContext("2d");
+
+    function updateDisplay(){
+      coinsEl.textContent = `💰 موجودی: ${coins} HC`;
+      ownedEl.textContent = `🪙 داری: ${owned} HC`;
+      priceEl.textContent = `قیمت فعلی: ${price} HC`;
+      drawChart();
+      localStorage.setItem("happyCoinSave", JSON.stringify({coins, owned, price, priceHistory}));
+    }
+
+    function buy(){
+      if(coins >= price){
+        coins -= price;
+        owned++;
+        updateDisplay();
+      }
+    }
+
+    function sell(){
+      if(owned > 0){
+        coins += price;
+        owned--;
+        updateDisplay();
+      }
+    }
+
+    function updatePrice(){
+      const change = Math.floor(Math.random()*5 - 2);
+      price = Math.max(1, price + change);
+      priceHistory.push(price);
+      if(priceHistory.length > 20) priceHistory.shift();
+      updateDisplay();
+    }
+
+    function drawChart(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      if(priceHistory.length<2) return;
+      const maxPrice = Math.max(...priceHistory);
+      const minPrice = Math.min(...priceHistory);
+      ctx.beginPath();
+      priceHistory.forEach((p,i)=>{
+        const x = (i/(priceHistory.length-1))*canvas.width;
+        const y = canvas.height - ((p - minPrice)/(maxPrice-minPrice||1))*canvas.height;
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      });
+      ctx.strokeStyle = "#4BC0C0";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    setInterval(updatePrice,1500);
+    updateDisplay();
+  </script>
+</body>
+</html>
