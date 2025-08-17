@@ -1,250 +1,82 @@
-<!DOCTYPE html>
-<html lang="fa">
-<head>
-<meta charset="UTF-8">
-<title>Pixel Battle Royale</title>
-<style>
-  body { margin:0; overflow:hidden; background:#222; }
-  canvas { display:block; background:#333; }
-  .joystick {
-    position: fixed;
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.15);
-    touch-action: none;
-    z-index: 10;
-  }
-  #menu {
-    position: absolute;
-    top:0; left:0;
-    width: 100%; height: 100%;
-    background: #111;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-family: sans-serif;
-    z-index: 5;
-  }
-  button {
-    margin: 5px;
-    padding: 10px 20px;
-    font-size: 20px;
-    background: #444;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-  h1 { margin-bottom: 20px; }
-</style>
-</head>
-<body>
+import { useState, useEffect } from "react"; import { Button } from "@/components/ui/button"; import { Card, CardContent } from "@/components/ui/card";
 
-<div id="menu">
-  <h1>ساخته شده توسط Rob Lucci</h1>
-  <h2>انتخاب مرحله</h2>
-  <div id="levels"></div>
+export default function HappyCoinGame() { const [menu, setMenu] = useState(true); const [coins, setCoins] = useState(100); const [price, setPrice] = useState(10); const [owned, setOwned] = useState(0); const [house, setHouse] = useState(0); const [car, setCar] = useState(0); const [married, setMarried] = useState(false); const [needs, setNeeds] = useState({ food: 100, clothes: 100, items: 100 });
+
+// بارگذاری اطلاعات ذخیره شده useEffect(() => { const saved = localStorage.getItem("happyCoinSave"); if (saved) { const data = JSON.parse(saved); setCoins(data.coins); setOwned(data.owned); setHouse(data.house); setCar(data.car); setMarried(data.married); setNeeds(data.needs || { food: 100, clothes: 100, items: 100 }); setMenu(data.menu); } }, []);
+
+// ذخیره سازی اطلاعات useEffect(() => { const data = { coins, owned, house, car, married, needs, menu }; localStorage.setItem("happyCoinSave", JSON.stringify(data)); }, [coins, owned, house, car, married, needs, menu]);
+
+// تغییر قیمت useEffect(() => { if (!menu && !married) { const interval = setInterval(() => { setPrice((p) => Math.max(1, p + Math.floor(Math.random() * 5 - 2))); }, 1500); return () => clearInterval(interval); } }, [menu, married]);
+
+// کاهش تدریجی نیازها بعد از ازدواج useEffect(() => { if (married) { const interval = setInterval(() => { setNeeds((prev) => ({ food: Math.max(0, prev.food - 2), clothes: Math.max(0, prev.clothes - 1), items: Math.max(0, prev.items - 1), })); }, 2000); return () => clearInterval(interval); } }, [married]);
+
+const buy = () => { if (coins >= price) { setCoins(coins - price); setOwned(owned + 1); } };
+
+const sell = () => { if (owned > 0) { setCoins(coins + price); setOwned(owned - 1); } };
+
+const buyHouse = () => { if (coins >= 200 * (house + 1)) { setCoins(coins - 200 * (house + 1)); setHouse(house + 1); } };
+
+const buyCar = () => { if (coins >= 300 * (car + 1)) { setCoins(coins - 300 * (car + 1)); setCar(car + 1); } };
+
+const marry = () => { if (house >= 3 && car >= 3 && coins >= 1000) { setMarried(true); } };
+
+const buyNeed = (type, cost) => { if (coins >= cost) { setCoins(coins - cost); setNeeds({ ...needs, [type]: 100 }); } };
+
+if (menu) { return ( <div className="flex h-screen items-center justify-center bg-gradient-to-br from-purple-700 to-indigo-900"> <Card className="p-6 text-center shadow-2xl"> <h1 className="text-3xl font-bold mb-6 text-white">🎮 Happy Coin: بورس وار</h1> <Button className="text-lg px-8 py-4" onClick={() => setMenu(false)}>شروع بازی</Button> </Card> </div> ); }
+
+// صفحه شکست وقتی نیازها صفر بشن if (married && (needs.food <= 0 || needs.clothes <= 0 || needs.items <= 0)) { return ( <div className="flex h-screen items-center justify-center bg-red-900 text-white"> <Card className="p-8 text-center"> <h1 className="text-4xl font-bold mb-4">💔 شکست خوردی!</h1> <p className="text-xl mb-6">نیازهای خانواده‌ات تامین نشد و همسرت طلاق گرفت.</p> <Button onClick={() => { localStorage.removeItem("happyCoinSave"); window.location.reload(); }}>شروع دوباره</Button> </Card> </div> ); }
+
+if (married) { return ( <div className="flex h-screen items-center justify-center bg-green-900 text-white"> <Card className="w-[500px] p-6 text-center space-y-4"> <h2 className="text-2xl font-bold">👨‍👩‍👦 زندگی مشترک</h2> <p>💰 موجودی: {coins} HC</p>
+
+<div className="grid grid-cols-3 gap-4 mt-4">
+        <div>
+          <p>🍲 غذا: {needs.food}%</p>
+          <Button onClick={() => buyNeed("food", 50)} className="bg-orange-600 hover:bg-orange-700 mt-2">خرید غذا (50 HC)</Button>
+        </div>
+        <div>
+          <p>👕 لباس: {needs.clothes}%</p>
+          <Button onClick={() => buyNeed("clothes", 80)} className="bg-blue-600 hover:bg-blue-700 mt-2">خرید لباس (80 HC)</Button>
+        </div>
+        <div>
+          <p>🛋️ لوازم: {needs.items}%</p>
+          <Button onClick={() => buyNeed("items", 100)} className="bg-purple-600 hover:bg-purple-700 mt-2">خرید لوازم (100 HC)</Button>
+        </div>
+      </div>
+    </Card>
+  </div>
+);
+
+}
+
+return ( <div className="flex h-screen items-center justify-center bg-gray-900 text-white"> <Card className="w-[450px] p-6 text-center space-y-4"> <h2 className="text-2xl font-bold">📈 بازار هپی کوین</h2> <p>💰 موجودی: {coins} HC</p> <p>🪙 داری: {owned} HC</p> <p className="text-xl">قیمت فعلی: {price} HC</p>
+
+<div className="flex justify-center gap-4">
+      <Button onClick={buy} className="bg-green-600 hover:bg-green-700">خرید</Button>
+      <Button onClick={sell} className="bg-red-600 hover:bg-red-700">فروش</Button>
+    </div>
+
+    <hr className="my-4 border-gray-700" />
+
+    <h3 className="text-lg font-bold">🏠 دارایی‌ها</h3>
+    <p>خانه: {house}</p>
+    <Button onClick={buyHouse} className="bg-blue-600 hover:bg-blue-700">
+      خرید/ارتقا خانه ({200 * (house + 1)} HC)
+    </Button>
+
+    <p className="mt-4">ماشین: {car}</p>
+    <Button onClick={buyCar} className="bg-yellow-600 hover:bg-yellow-700">
+      خرید/ارتقا ماشین ({300 * (car + 1)} HC)
+    </Button>
+
+    {house >= 3 && car >= 3 && coins >= 1000 && (
+      <div className="mt-6">
+        <Button onClick={marry} className="bg-pink-600 hover:bg-pink-700">
+          💍 ازدواج کن
+        </Button>
+      </div>
+    )}
+  </Card>
 </div>
 
-<canvas id="game"></canvas>
+); }
 
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-function resizeCanvas(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
-
-let isMobile = /Mobi|Android/i.test(navigator.userAgent);
-let player, bots, walls, bullets, botBullets;
-let keys = {};
-let moveVector = {x:0,y:0}, aimVector = {x:0,y:0};
-let levelIndex = 0;
-let shootCooldown = 0;
-
-const levelsData = [
-  { walls:[{x:0.4,y:0.4,w:0.2,h:0.03}], botCount:2 },
-  { walls:[{x:0.3,y:0.2,w:0.3,h:0.03},{x:0.7,y:0.6,w:0.03,h:0.2}], botCount:3 },
-  { walls:[{x:0.1,y:0.4,w:0.4,h:0.03},{x:0.6,y:0.2,w:0.03,h:0.3}], botCount:4 },
-  { walls:[{x:0.3,y:0.6,w:0.4,h:0.03},{x:0.8,y:0.3,w:0.03,h:0.3}], botCount:5 },
-  { walls:[{x:0.2,y:0.2,w:0.2,h:0.03},{x:0.6,y:0.7,w:0.3,h:0.03}], botCount:6 },
-  { walls:[{x:0.25,y:0.3,w:0.35,h:0.03},{x:0.7,y:0.4,w:0.03,h:0.3}], botCount:7 }
-];
-
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
-
-function createJoystick(left, top) {
-    let joy = document.createElement("div");
-    joy.className = "joystick";
-    joy.style.left = left+"px";
-    joy.style.top = top+"px";
-    document.body.appendChild(joy);
-    let origin = {x:0, y:0};
-    let vector = {x:0, y:0};
-
-    joy.addEventListener("touchstart", e => {
-        origin.x = e.touches[0].clientX;
-        origin.y = e.touches[0].clientY;
-    });
-    joy.addEventListener("touchmove", e => {
-        let dx = e.touches[0].clientX - origin.x;
-        let dy = e.touches[0].clientY - origin.y;
-        let dist = Math.min(Math.sqrt(dx*dx+dy*dy), 40);
-        let angle = Math.atan2(dy, dx);
-        vector.x = Math.cos(angle) * (dist/40);
-        vector.y = Math.sin(angle) * (dist/40);
-    });
-    joy.addEventListener("touchend", () => { vector.x=0; vector.y=0; });
-    return vector;
-}
-
-function startLevel(index){
-    levelIndex = index;
-    let level = levelsData[index];
-    let size = Math.min(canvas.width, canvas.height) * 0.03;
-    player = { x:canvas.width*0.1, y:canvas.height*0.1, size:size, speed:isMobile?2:3, hp:100 };
-    bullets = [];
-    botBullets = [];
-    bots = [];
-    walls = level.walls.map(w=>({
-      x: w.x * canvas.width,
-      y: w.y * canvas.height,
-      w: w.w * canvas.width,
-      h: w.h * canvas.height
-    }));
-    for(let i=0;i<level.botCount;i++){
-        bots.push({ 
-          x:Math.random()*(canvas.width*0.8)+canvas.width*0.1, 
-          y:Math.random()*(canvas.height*0.8)+canvas.height*0.1, 
-          size:size, speed:1.5, hp:50, shootTimer:0 
-        });
-    }
-    document.getElementById("menu").style.display = "none";
-}
-
-if(isMobile){
-    moveVector = createJoystick(30, window.innerHeight - 120);
-    aimVector = createJoystick(window.innerWidth - 120, window.innerHeight - 120);
-}
-
-function update(){
-    if(isMobile){
-        player.x += moveVector.x * player.speed;
-        player.y += moveVector.y * player.speed;
-    } else {
-        if(keys["w"]) player.y -= player.speed;
-        if(keys["s"]) player.y += player.speed;
-        if(keys["a"]) player.x -= player.speed;
-        if(keys["d"]) player.x += player.speed;
-    }
-
-    shootCooldown--;
-    if(isMobile){
-        if((Math.abs(aimVector.x) > 0.2 || Math.abs(aimVector.y) > 0.2) && shootCooldown<=0){
-            bullets.push({ x:player.x, y:player.y, dx:aimVector.x*5, dy:aimVector.y*5 });
-            shootCooldown = 15;
-        }
-    } else {
-        if(keys[" "] && shootCooldown<=0){
-            let dx=0, dy=0;
-            if(keys["ArrowUp"]) dy = -5;
-            if(keys["ArrowDown"]) dy = 5;
-            if(keys["ArrowLeft"]) dx = -5;
-            if(keys["ArrowRight"]) dx = 5;
-            if(dx||dy){
-                bullets.push({ x:player.x, y:player.y, dx, dy });
-                shootCooldown = 15;
-            }
-        }
-    }
-
-    bullets.forEach(b => { b.x += b.dx; b.y += b.dy; });
-    botBullets.forEach(b => { b.x += b.dx; b.y += b.dy; });
-
-    bots.forEach(bot=>{
-        let dx = player.x - bot.x;
-        let dy = player.y - bot.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        if(dist>0){
-            bot.x += (dx/dist) * bot.speed;
-            bot.y += (dy/dist) * bot.speed;
-        }
-        bot.shootTimer--;
-        if(bot.shootTimer <= 0){
-            botBullets.push({ x:bot.x, y:bot.y, dx:(dx/dist)*4, dy:(dy/dist)*4 });
-            bot.shootTimer = 60;
-        }
-    });
-
-    bullets.forEach((b,bi)=>{
-        bots.forEach(bot=>{
-            if(Math.abs(b.x-bot.x)<player.size && Math.abs(b.y-bot.y)<player.size){
-                bot.hp -= 20;
-                bullets.splice(bi,1);
-            }
-        });
-    });
-
-    bots = bots.filter(bot=>bot.hp>0);
-
-    botBullets.forEach((b,bi)=>{
-        if(Math.abs(b.x-player.x)<player.size && Math.abs(b.y-player.y)<player.size){
-            player.hp -= 10;
-            botBullets.splice(bi,1);
-        }
-    });
-
-    if(player.hp <= 0){
-        alert("باختی!");
-        location.reload();
-    }
-    if(bots.length === 0){
-        alert("مرحله رو بردی!");
-        if(levelIndex < levelsData.length-1) startLevel(levelIndex+1);
-        else alert("همه مراحل رو بردی!");
-    }
-}
-
-function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "gray";
-    walls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
-    ctx.fillStyle = "blue";
-    ctx.fillRect(player.x, player.y, player.size, player.size);
-    ctx.fillStyle = "red";
-    bots.forEach(bot=>ctx.fillRect(bot.x, bot.y, bot.size, bot.size));
-    ctx.fillStyle = "yellow";
-    bullets.forEach(b=>ctx.fillRect(b.x,b.y,5,5));
-    ctx.fillStyle = "orange";
-    botBullets.forEach(b=>ctx.fillRect(b.x,b.y,5,5));
-    ctx.fillStyle = "green";
-    ctx.fillRect(10,10,player.hp*(canvas.width/100*0.5),10);
-}
-
-function gameLoop(){
-    if(player) update();
-    if(player) draw();
-    requestAnimationFrame(gameLoop);
-}
-
-function initMenu(){
-    let levelsDiv = document.getElementById("levels");
-    levelsData.forEach((l,i)=>{
-        let btn = document.createElement("button");
-        btn.innerText = "مرحله " + (i+1);
-        btn.onclick = ()=>startLevel(i);
-        levelsDiv.appendChild(btn);
-    });
-}
-
-initMenu();
-gameLoop();
-</script>
-</body>
-</html>
