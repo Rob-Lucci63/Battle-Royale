@@ -1,82 +1,0 @@
-import { useState, useEffect } from "react"; import { Button } from "@/components/ui/button"; import { Card, CardContent } from "@/components/ui/card";
-
-export default function HappyCoinGame() { const [menu, setMenu] = useState(true); const [coins, setCoins] = useState(100); const [price, setPrice] = useState(10); const [owned, setOwned] = useState(0); const [house, setHouse] = useState(0); const [car, setCar] = useState(0); const [married, setMarried] = useState(false); const [needs, setNeeds] = useState({ food: 100, clothes: 100, items: 100 });
-
-// بارگذاری اطلاعات ذخیره شده useEffect(() => { const saved = localStorage.getItem("happyCoinSave"); if (saved) { const data = JSON.parse(saved); setCoins(data.coins); setOwned(data.owned); setHouse(data.house); setCar(data.car); setMarried(data.married); setNeeds(data.needs || { food: 100, clothes: 100, items: 100 }); setMenu(data.menu); } }, []);
-
-// ذخیره سازی اطلاعات useEffect(() => { const data = { coins, owned, house, car, married, needs, menu }; localStorage.setItem("happyCoinSave", JSON.stringify(data)); }, [coins, owned, house, car, married, needs, menu]);
-
-// تغییر قیمت useEffect(() => { if (!menu && !married) { const interval = setInterval(() => { setPrice((p) => Math.max(1, p + Math.floor(Math.random() * 5 - 2))); }, 1500); return () => clearInterval(interval); } }, [menu, married]);
-
-// کاهش تدریجی نیازها بعد از ازدواج useEffect(() => { if (married) { const interval = setInterval(() => { setNeeds((prev) => ({ food: Math.max(0, prev.food - 2), clothes: Math.max(0, prev.clothes - 1), items: Math.max(0, prev.items - 1), })); }, 2000); return () => clearInterval(interval); } }, [married]);
-
-const buy = () => { if (coins >= price) { setCoins(coins - price); setOwned(owned + 1); } };
-
-const sell = () => { if (owned > 0) { setCoins(coins + price); setOwned(owned - 1); } };
-
-const buyHouse = () => { if (coins >= 200 * (house + 1)) { setCoins(coins - 200 * (house + 1)); setHouse(house + 1); } };
-
-const buyCar = () => { if (coins >= 300 * (car + 1)) { setCoins(coins - 300 * (car + 1)); setCar(car + 1); } };
-
-const marry = () => { if (house >= 3 && car >= 3 && coins >= 1000) { setMarried(true); } };
-
-const buyNeed = (type, cost) => { if (coins >= cost) { setCoins(coins - cost); setNeeds({ ...needs, [type]: 100 }); } };
-
-if (menu) { return ( <div className="flex h-screen items-center justify-center bg-gradient-to-br from-purple-700 to-indigo-900"> <Card className="p-6 text-center shadow-2xl"> <h1 className="text-3xl font-bold mb-6 text-white">🎮 Happy Coin: بورس وار</h1> <Button className="text-lg px-8 py-4" onClick={() => setMenu(false)}>شروع بازی</Button> </Card> </div> ); }
-
-// صفحه شکست وقتی نیازها صفر بشن if (married && (needs.food <= 0 || needs.clothes <= 0 || needs.items <= 0)) { return ( <div className="flex h-screen items-center justify-center bg-red-900 text-white"> <Card className="p-8 text-center"> <h1 className="text-4xl font-bold mb-4">💔 شکست خوردی!</h1> <p className="text-xl mb-6">نیازهای خانواده‌ات تامین نشد و همسرت طلاق گرفت.</p> <Button onClick={() => { localStorage.removeItem("happyCoinSave"); window.location.reload(); }}>شروع دوباره</Button> </Card> </div> ); }
-
-if (married) { return ( <div className="flex h-screen items-center justify-center bg-green-900 text-white"> <Card className="w-[500px] p-6 text-center space-y-4"> <h2 className="text-2xl font-bold">👨‍👩‍👦 زندگی مشترک</h2> <p>💰 موجودی: {coins} HC</p>
-
-<div className="grid grid-cols-3 gap-4 mt-4">
-        <div>
-          <p>🍲 غذا: {needs.food}%</p>
-          <Button onClick={() => buyNeed("food", 50)} className="bg-orange-600 hover:bg-orange-700 mt-2">خرید غذا (50 HC)</Button>
-        </div>
-        <div>
-          <p>👕 لباس: {needs.clothes}%</p>
-          <Button onClick={() => buyNeed("clothes", 80)} className="bg-blue-600 hover:bg-blue-700 mt-2">خرید لباس (80 HC)</Button>
-        </div>
-        <div>
-          <p>🛋️ لوازم: {needs.items}%</p>
-          <Button onClick={() => buyNeed("items", 100)} className="bg-purple-600 hover:bg-purple-700 mt-2">خرید لوازم (100 HC)</Button>
-        </div>
-      </div>
-    </Card>
-  </div>
-);
-
-}
-
-return ( <div className="flex h-screen items-center justify-center bg-gray-900 text-white"> <Card className="w-[450px] p-6 text-center space-y-4"> <h2 className="text-2xl font-bold">📈 بازار هپی کوین</h2> <p>💰 موجودی: {coins} HC</p> <p>🪙 داری: {owned} HC</p> <p className="text-xl">قیمت فعلی: {price} HC</p>
-
-<div className="flex justify-center gap-4">
-      <Button onClick={buy} className="bg-green-600 hover:bg-green-700">خرید</Button>
-      <Button onClick={sell} className="bg-red-600 hover:bg-red-700">فروش</Button>
-    </div>
-
-    <hr className="my-4 border-gray-700" />
-
-    <h3 className="text-lg font-bold">🏠 دارایی‌ها</h3>
-    <p>خانه: {house}</p>
-    <Button onClick={buyHouse} className="bg-blue-600 hover:bg-blue-700">
-      خرید/ارتقا خانه ({200 * (house + 1)} HC)
-    </Button>
-
-    <p className="mt-4">ماشین: {car}</p>
-    <Button onClick={buyCar} className="bg-yellow-600 hover:bg-yellow-700">
-      خرید/ارتقا ماشین ({300 * (car + 1)} HC)
-    </Button>
-
-    {house >= 3 && car >= 3 && coins >= 1000 && (
-      <div className="mt-6">
-        <Button onClick={marry} className="bg-pink-600 hover:bg-pink-700">
-          💍 ازدواج کن
-        </Button>
-      </div>
-    )}
-  </Card>
-</div>
-
-); }
-
