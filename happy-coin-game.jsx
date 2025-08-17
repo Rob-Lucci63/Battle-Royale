@@ -1,31 +1,11 @@
-import { useState, useEffect } from "react";
-import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { useState, useEffect, useRef } from "react";
 
 export default function HappyCoin() {
   const [coins, setCoins] = useState(100);
   const [owned, setOwned] = useState(0);
   const [price, setPrice] = useState(10);
   const [priceHistory, setPriceHistory] = useState([]);
+  const canvasRef = useRef(null);
 
   // بارگذاری ذخیره‌شده
   useEffect(() => {
@@ -58,6 +38,30 @@ export default function HappyCoin() {
     return () => clearInterval(interval);
   }, []);
 
+  // رسم خط ترید ساده روی canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (priceHistory.length < 2) return;
+
+    const maxPrice = Math.max(...priceHistory);
+    const minPrice = Math.min(...priceHistory);
+
+    ctx.beginPath();
+    priceHistory.forEach((p, i) => {
+      const x = (i / (priceHistory.length - 1)) * canvas.width;
+      const y = canvas.height - ((p - minPrice) / (maxPrice - minPrice || 1)) * canvas.height;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = "#4BC0C0";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }, [priceHistory]);
+
   const buy = () => {
     if (coins >= price) {
       setCoins(coins - price);
@@ -72,24 +76,11 @@ export default function HappyCoin() {
     }
   };
 
-  const data = {
-    labels: priceHistory.map((_, i) => i + 1),
-    datasets: [
-      {
-        label: "قیمت هپی کوین",
-        data: priceHistory,
-        fill: false,
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.3,
-      },
-    ],
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
       <h1 className="text-3xl font-bold mb-6">🎮 Happy Coin</h1>
       <p className="text-xl mb-2">💰 موجودی: {coins} HC</p>
-      <p className="text-xl mb-4">🪙 داری: {owned} HC</p>
+      <p className="text-xl mb-2">🪙 داری: {owned} HC</p>
       <p className="text-xl mb-4">قیمت فعلی: {price} HC</p>
       <div className="flex gap-4 mb-6">
         <button onClick={buy} className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded">
@@ -99,9 +90,7 @@ export default function HappyCoin() {
           فروش
         </button>
       </div>
-      <div className="w-full max-w-md">
-        <Line data={data} />
-      </div>
+      <canvas ref={canvasRef} width={400} height={200} className="border border-gray-700 rounded" />
     </div>
   );
-               }
+}
