@@ -3,189 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>پاسور ۱۱ سه‌بعدی</title>
+<title>بازی ۱۱ کارت</title>
 <style>
-  body { margin:0; font-family:tahoma, sans-serif; background:#0b1020; color:#fff; overflow:hidden;}
-  #gameCanvas { display:block; width:100%; height:100vh; }
-  #menu { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:10;}
-  #menu button { padding:15px 25px; font-size:20px; margin:10px; border:none; border-radius:10px; cursor:pointer; background:#1e90ff; color:#fff;}
-  #hud { position:absolute; top:10px; right:10px; z-index:5;}
-  .label { margin:5px; font-size:16px; }
+  body{margin:0;background:#0b1020;display:flex;justify-content:center;align-items:center;height:100vh;font-family:tahoma;color:#fff;}
+  canvas{background:#1b1f2b;border:2px solid #fff;border-radius:12px;}
 </style>
 </head>
 <body>
-<div id="menu">
-  <h1>پاسور ۱۱ سه‌بعدی</h1>
-  <button id="startBtn">شروع بازی</button>
-</div>
-<div id="hud">
-  <div class="label">امتیاز شما: <span id="playerScore">0</span></div>
-  <div class="label">امتیاز بات: <span id="botScore">0</span></div>
-</div>
-<canvas id="gameCanvas"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
 <script>
-let scene, camera, renderer;
-let cards = [], botCards = [], playerCards = [];
-let playerScore = 0, botScore = 0;
-const cardValues = [1,2,3,4,5,6,7,8,9,10,11];
-let gameStarted = false;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-// Initialize Three.js
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b1020);
+const cardWidth = 60, cardHeight = 90;
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
-  camera.position.set(0,10,15);
-  camera.lookAt(0,0,0);
+// کارت‌ها روی میز و دست بازیکن
+let tableCards = [];
+let playerHand = [];
+let botHand = [];
 
-  renderer = new THREE.WebGLRenderer({canvas: document.getElementById('gameCanvas'), antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-  // Light
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(0,20,10);
-  scene.add(light);
-
-  // Ground
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(30,30),
-    new THREE.MeshPhongMaterial({color:0x116622})
-  );
-  ground.rotation.x = -Math.PI/2;
-  scene.add(ground);
-
-  // Create cards
-  let offsetX = -5;
-  for(let i=0;i<11;i++){
-    let card = makeCard(i+1);
-    card.position.set(offsetX,0.1,0);
-    scene.add(card);
-    cards.push(card);
-    offsetX += 1;
+// ایجاد کارت‌ها (1 تا 10)
+function createDeck() {
+  let deck = [];
+  for(let i=1;i<=10;i++){
+    for(let j=0;j<4;j++) deck.push(i);
   }
+  return shuffle(deck);
 }
 
-// Make 3D card
-function makeCard(value){
-  const g = new THREE.Group();
-  const box = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.05,1.2), new THREE.MeshPhongMaterial({color:0xffffff}));
-  g.add(box);
-
-  const loader = new THREE.TextureLoader();
-  const canvas = document.createElement('canvas');
-  canvas.width = 128; canvas.height = 192;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0,0,128,192);
-  ctx.fillStyle = '#000';
-  ctx.font = 'bold 50px Tahoma';
-  ctx.textAlign = 'center';
-  ctx.fillText(value,64,100);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  const cardFace = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.78,1.18),
-    new THREE.MeshBasicMaterial({map:tex})
-  );
-  cardFace.position.y = 0.03;
-  cardFace.position.z = 0;
-  g.add(cardFace);
-
-  g.userData = { value:value, selected:false };
-  g.cursor = 'pointer';
-  return g;
+// شافل
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
+  }
+  return array;
 }
 
-// Animate
-function animate(){
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+let deck = createDeck();
+
+// پخش کارت‌ها
+function dealCards(){
+  playerHand = deck.splice(0,5);
+  botHand = deck.splice(0,5);
+  tableCards = deck.splice(0,4); // 4 کارت روی میز
+}
+dealCards();
+
+// کارت رو رسم کن
+function drawCard(x,y,val){
+  ctx.fillStyle='#fff';
+  ctx.fillRect(x,y,cardWidth,cardHeight);
+  ctx.fillStyle='#000';
+  ctx.font='20px Tahoma';
+  ctx.fillText(val,x+cardWidth/2-6,y+cardHeight/2+8);
 }
 
-// Start Game
-document.getElementById('startBtn').addEventListener('click',()=>{
-  gameStarted = true;
-  document.getElementById('menu').style.display='none';
-});
+// رندر کل
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// Raycaster for card selection
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-window.addEventListener('click',(e)=>{
-  if(!gameStarted) return;
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse,camera);
-  const intersects = raycaster.intersectObjects(cards,true);
-  if(intersects.length>0){
-    const card = intersects[0].object.parent;
-    if(!card.userData.selected){
-      card.userData.selected = true;
-      card.position.y += 0.3;
-      playerCards.push(card.userData.value);
-      checkSum(playerCards,'player');
+  // میز
+  ctx.fillStyle='rgba(255,255,255,0.1)';
+  ctx.fillRect(50,50,300,200);
+  ctx.fillStyle='#fff';
+  ctx.fillText('میز',180,45);
+
+  // کارت‌های میز
+  tableCards.forEach((c,i)=>{
+    drawCard(70+i*80,80,c);
+  });
+
+  // دست بازیکن
+  ctx.fillStyle='rgba(255,255,255,0.1)';
+  ctx.fillRect(50,300,300,200);
+  ctx.fillStyle='#fff';
+  ctx.fillText('دست شما',160,295);
+  playerHand.forEach((c,i)=>{
+    drawCard(70+i*70,330,c);
+  });
+}
+
+render();
+
+// انتخاب کارت با کلیک
+canvas.addEventListener('click', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // بررسی کارت‌های دست بازیکن
+  playerHand.forEach((c,i)=>{
+    const x = 70+i*70, y = 330;
+    if(mx>x && mx<x+cardWidth && my>y && my<y+cardHeight){
+      // جمع با کارت‌های میز
+      tableCards.forEach((tc,ti)=>{
+        if(c + tc === 11){
+          alert('مجموع ۱۱ ساخته شد! کارت‌ها حذف میشن.');
+          playerHand.splice(i,1);
+          tableCards.splice(ti,1);
+          render();
+        }
+      });
     }
-  }
+  });
 });
-
-// Check sum
-function checkSum(arr,owner){
-  const sum = arr.reduce((a,b)=>a+b,0);
-  if(sum===11){
-    if(owner==='player'){
-      playerScore++;
-      document.getElementById('playerScore').textContent=playerScore;
-    } else {
-      botScore++;
-      document.getElementById('botScore').textContent=botScore;
-    }
-    // Remove selected cards
-    cards.forEach(c=>{ if(c.userData.selected) scene.remove(c); });
-    cards = cards.filter(c=>!c.userData.selected);
-    playerCards=[]; botCards=[];
-  } else if(sum>11){
-    // Reset
-    arr.length=0;
-    cards.forEach(c=>c.userData.selected=false);
-    cards.forEach(c=>c.position.y=0.1);
-  }
-}
-
-// Simple Bot
-function botTurn(){
-  if(!gameStarted || cards.length===0) return;
-  // pick random combination to sum 11
-  for(let i=0;i<cards.length;i++){
-    for(let j=i;j<cards.length;j++){
-      const v1 = cards[i].userData.value;
-      const v2 = cards[j].userData.value;
-      if(v1+v2===11){
-        cards[i].userData.selected=true;
-        cards[j].userData.selected=true;
-        cards[i].position.y += 0.3;
-        cards[j].position.y += 0.3;
-        botCards.push(v1,v2);
-        checkSum(botCards,'bot');
-        return;
-      }
-    }
-  }
-}
-
-// Bot interval
-setInterval(botTurn,2000);
-
-// Resize
-window.addEventListener('resize',()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
-});
-
-init();
-animate();
 </script>
 </body>
 </html>
