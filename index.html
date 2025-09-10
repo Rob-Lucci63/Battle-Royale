@@ -1,152 +1,347 @@
-<!DOCTYPE html>
-<html lang="fa">
+<!doctype html>
+
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>Happy Coin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OnePiece Mini 3D — سوم شخص (گرافیک پایین)</title>
   <style>
-    body { font-family: sans-serif; background: #1f2937; color: white; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    #menu, #game { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 400px; padding: 20px; box-sizing: border-box; }
-    h1 { font-size: 2rem; margin-bottom: 20px; text-align: center; }
-    .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; margin: 5px; width: 100%; max-width: 200px; }
-    .start { background: #2563eb; }
-    .start:hover { background: #1d4ed8; }
-    .buy { background: #16a34a; }
-    .buy:hover { background: #15803d; }
-    .sell { background: #dc2626; }
-    .sell:hover { background: #b91c1c; }
-    canvas { border: 1px solid #4b5563; border-radius: 5px; margin-top: 20px; width: 100%; height: 200px; }
-    p { margin: 5px 0; text-align: center; }
+    html,body{height:100%;margin:0;background:#0b1020;color:#fff;font-family:Tahoma,Arial}
+    #gameCanvas{display:block;width:100%;height:100vh}
+    /* UI ساده برای موبایل */
+    .ui {
+      position: absolute; left: 8px; top: 8px; z-index: 20;
+      background: rgba(0,0,0,0.35); padding:8px;border-radius:8px;
+    }
+    .hud {position:absolute; right:8px; top:8px; z-index:20; text-align:left}
+    .btn {user-select:none; touch-action:none; font-weight:bold; padding:10px 12px; border-radius:8px; margin:6px; background:rgba(255,255,255,0.06); color:#fff}/* کنترل لمسی پایین */
+.touch-pad {position: absolute; left: 10px; bottom: 10px; z-index: 21; display:flex; gap:8px}
+.pad-col{display:flex;flex-direction:column;gap:8px}
+.big-btn{width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.attack-pad{position:absolute; right:10px; bottom:10px; z-index:21; display:flex;flex-direction:column; gap:8px}
+
+.label{font-size:13px; opacity:0.9}
+.info {font-size:14px}
+
+/* دکمه‌های کوچک برای دسکتاپ */
+.keyboard-help{position:absolute; left:8px; bottom:8px; z-index:20; background:rgba(0,0,0,0.35); padding:8px;border-radius:8px}
+
   </style>
 </head>
 <body>
-  <div id="menu">
-    <h1>🎮 Happy Coin: بورس وار</h1>
-    <button class="btn start" onclick="startGame()">شروع بازی</button>
-  </div>
-
-  <div id="game">
-    <h1>🎮 Happy Coin</h1>
-    <p id="coins">💰 موجودی: 100 HC</p>
-    <p id="owned">🪙 داری: 0 HC</p>
-    <p id="price">قیمت فعلی: 10 HC</p>
-    <div style="display:flex; gap:10px; flex-wrap: wrap; justify-content: center;">
-      <button class="btn buy" onclick="buy()">خرید</button>
-      <button class="btn sell" onclick="sell()">فروش</button>
+  <canvas id="gameCanvas"></canvas>  <div class="hud">
+    <div class="ui">
+      <div class="label">قلب‌ها: <span id="hp">100</span></div>
+      <div class="label">امتیاز: <span id="score">0</span></div>
+      <div class="label">High: <span id="high">0</span></div>
     </div>
-    <canvas id="chart"></canvas>
-  </div>
+  </div>  <div class="touch-pad" id="touchPad">
+    <div class="pad-col">
+      <div class="btn big-btn" id="btnUp">↑</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <div class="btn big-btn" id="btnLeft">←</div>
+        <div class="btn big-btn" id="btnDown">↓</div>
+        <div class="btn big-btn" id="btnRight">→</div>
+      </div>
+    </div>
+  </div>  <div class="attack-pad">
+    <div class="btn" id="attackL">حمله لوفی</div>
+    <div class="btn" id="attackC">حمله کاکو (زرافه)</div>
+  </div>  <div class="keyboard-help">WASD یا ←↑→↓ حرکت — J حمله لوفی — K حمله کاکو</div>  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>  <script>
+    // بازی سوم شخص ساده — گرافیک پایین
+    const canvas = document.getElementById('gameCanvas');
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:false});
+    renderer.setPixelRatio(window.devicePixelRatio ? Math.min(window.devicePixelRatio, 1.5) : 1);
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-  <script>
-    let coins = 100;
-    let owned = 0;
-    let price = 10;
-    let priceHistory = [];
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1320);
 
-    const menuDiv = document.getElementById("menu");
-    const gameDiv = document.getElementById("game");
-    const coinsEl = document.getElementById("coins");
-    const ownedEl = document.getElementById("owned");
-    const priceEl = document.getElementById("price");
-    const canvas = document.getElementById("chart");
-    const ctx = canvas.getContext("2d");
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 200);
 
-    function startGame(){
-      menuDiv.style.display = "none";
-      gameDiv.style.display = "flex";
-      loadSave();
-      updateDisplay();
+    // زمین
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(120, 120, 1,1),
+      new THREE.MeshBasicMaterial({color:0x116622})
+    );
+    ground.rotation.x = -Math.PI/2; scene.add(ground);
+
+    // ساده بودن متریال — MeshBasicMaterial (بدون نور) برای سبک بودن
+
+    // بازیکن — گروه آدمی ساده
+    function makeHumanoid(color){
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.2,0.5), new THREE.MeshBasicMaterial({color}));
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), new THREE.MeshBasicMaterial({color:0xffffff}));
+      head.material = new THREE.MeshBasicMaterial({color});
+      head.position.y = 1.05;
+      body.position.y = 0.2;
+      const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.6,0.2), new THREE.MeshBasicMaterial({color}));
+      const rArm = lArm.clone();
+      lArm.position.set(-0.6,0.2,0); rArm.position.set(0.6,0.2,0);
+      const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.25,0.7,0.25), new THREE.MeshBasicMaterial({color}));
+      const rLeg = lLeg.clone();
+      lLeg.position.set(-0.22,-0.7,0); rLeg.position.set(0.22,-0.7,0);
+      g.add(body, head, lArm, rArm, lLeg, rLeg);
+      return g;
     }
 
-    function loadSave(){
-      const saved = localStorage.getItem("happyCoinSave");
-      if(saved){
-        const data = JSON.parse(saved);
-        coins = data.coins;
-        owned = data.owned;
-        price = data.price;
-        priceHistory = data.priceHistory || [];
+    const player = makeHumanoid(0xff5555);
+    player.position.set(0,0.7,0);
+    scene.add(player);
+
+    // دوربین سوم شخص: پشت و بالاتر از بازیکن
+    const camOffset = new THREE.Vector3(0,3.2,6.2);
+
+    // موجودات: دشمن‌ها
+    const enemies = [];
+    function spawnEnemy(pos){
+      const e = makeHumanoid(0x5588ff);
+      e.position.copy(pos);
+      e.health = 30;
+      e.speed = 0.018 + Math.random()*0.02;
+      scene.add(e);
+      enemies.push(e);
+    }
+
+    // میوه‌ها
+    const fruits = [];
+    function makeFruit(type, pos){
+      const color = type==='luffy' ? 0xff4444 : 0xffd266;
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.35,8,6), new THREE.MeshBasicMaterial({color}));
+      s.position.copy(pos);
+      s.type = type;
+      scene.add(s);
+      fruits.push(s);
+    }
+
+    // حملات فعال
+    const projectiles = [];
+
+    function spawnLuffyAttack(origin, dir){
+      // مکعب کشسان که سریع جلو میره
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,1.8), new THREE.MeshBasicMaterial({color:0xff6666}));
+      p.position.copy(origin);
+      p.dir = dir.clone().normalize();
+      p.speed = 0.7;
+      p.type = 'luffy';
+      scene.add(p);
+      projectiles.push(p);
+    }
+
+    function spawnCacoAttack(origin, dir){
+      // استوانه‌ای که قوس داره (پرش زرافه‌ای)
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,1.6,6), new THREE.MeshBasicMaterial({color:0xffd266}));
+      p.rotation.x = Math.PI/2;
+      p.position.copy(origin);
+      p.dir = dir.clone().normalize();
+      p.speed = 0.6;
+      p.type = 'caco';
+      p.life = 0;
+      scene.add(p);
+      projectiles.push(p);
+    }
+
+    // کنترل‌ها
+    const input = {left:false,right:false,up:false,down:false, attackL:false, attackC:false};
+
+    // دکمه‌ها
+    function bindBtn(id, keyName){
+      const el = document.getElementById(id);
+      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); input[keyName]=true; });
+      el.addEventListener('touchend', (e)=>{ e.preventDefault(); input[keyName]=false; });
+      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); input[keyName]=true; });
+      el.addEventListener('mouseup', (e)=>{ e.preventDefault(); input[keyName]=false; });
+    }
+
+    bindBtn('btnLeft','left'); bindBtn('btnRight','right'); bindBtn('btnUp','up'); bindBtn('btnDown','down');
+    bindBtn('attackL','attackL'); bindBtn('attackC','attackC');
+
+    // صفات بازیکن
+    let playerHP = 100; let score = 0; const hpEl = document.getElementById('hp'); const scEl = document.getElementById('score'); const highEl = document.getElementById('high');
+    let high = parseInt(localStorage.getItem('onepiece_high')||0); highEl.textContent = high;
+
+    // کیبورد
+    window.addEventListener('keydown', (e)=>{
+      if(e.key==='a' || e.key==='ArrowLeft') input.left = true;
+      if(e.key==='d' || e.key==='ArrowRight') input.right = true;
+      if(e.key==='w' || e.key==='ArrowUp') input.up = true;
+      if(e.key==='s' || e.key==='ArrowDown') input.down = true;
+      if(e.key==='j') input.attackL = true;
+      if(e.key==='k') input.attackC = true;
+    });
+    window.addEventListener('keyup', (e)=>{
+      if(e.key==='a' || e.key==='ArrowLeft') input.left = false;
+      if(e.key==='d' || e.key==='ArrowRight') input.right = false;
+      if(e.key==='w' || e.key==='ArrowUp') input.up = false;
+      if(e.key==='s' || e.key==='ArrowDown') input.down = false;
+      if(e.key==='j') input.attackL = false;
+      if(e.key==='k') input.attackC = false;
+    });
+
+    // لوجیک حرکت بازیکن
+    const velocity = new THREE.Vector3();
+    function updatePlayer(dt){
+      const speed = 3.4; // واحد متر/ثانیه
+      let move = new THREE.Vector3();
+      if(input.left) move.x -= 1;
+      if(input.right) move.x += 1;
+      if(input.up) move.z -= 1;
+      if(input.down) move.z += 1;
+      if(move.length()>0){ move.normalize(); velocity.x = move.x*speed; velocity.z = move.z*speed; }
+      else { velocity.x = THREE.MathUtils.lerp(velocity.x,0,0.2); velocity.z = THREE.MathUtils.lerp(velocity.z,0,0.2); }
+
+      player.position.x += velocity.x * dt;
+      player.position.z += velocity.z * dt;
+
+      // دوربین دنبال کن
+      const desired = player.position.clone().add(camOffset);
+      camera.position.lerp(desired, 0.12);
+      camera.lookAt(player.position.x, player.position.y+0.8, player.position.z);
+
+      // جهت بازیکن (چرخش ساده)
+      if(move.length()>0){
+        const angle = Math.atan2(move.x, -move.z);
+        player.rotation.y = THREE.MathUtils.lerpAngle(player.rotation.y, angle, 0.18);
+      }
+
+      // نبرد: حمله‌ها
+      if(input.attackL){ // لوفی — تیر مستقیم
+        input.attackL = false; // تک شات
+        const front = new THREE.Vector3(0,0.8,-1).applyQuaternion(player.quaternion).add(player.position);
+        const dir = new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);
+        spawnLuffyAttack(front, dir);
+      }
+      if(input.attackC){
+        input.attackC = false;
+        const front = new THREE.Vector3(0,0.8,-1).applyQuaternion(player.quaternion).add(player.position);
+        const dir = new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);
+        spawnCacoAttack(front, dir);
       }
     }
 
-    function saveGame(){
-      localStorage.setItem("happyCoinSave", JSON.stringify({coins, owned, price, priceHistory}));
-    }
-
-    function updateDisplay(){
-      coinsEl.textContent = `💰 موجودی: ${coins} HC`;
-      ownedEl.textContent = `🪙 داری: ${owned} HC`;
-      priceEl.textContent = `قیمت فعلی: ${price} HC`;
-      drawChart();
-      saveGame();
-    }
-
-    function buy(){
-      if(coins >= price){
-        coins -= price;
-        owned++;
-        updateDisplay();
-      }
-    }
-
-    function sell(){
-      if(owned > 0){
-        coins += price;
-        owned--;
-        updateDisplay();
-      }
-    }
-
-    function updatePrice(){
-      const change = Math.floor(Math.random()*5 - 2);
-      price = Math.max(1, price + change);
-      priceHistory.push(price);
-      if(priceHistory.length > 20) priceHistory.shift();
-      updateDisplay();
-    }
-
-    function drawChart(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      if(priceHistory.length<2) return;
-      const maxPrice = Math.max(...priceHistory);
-      const minPrice = Math.min(...priceHistory);
-
-      // رسم منحنی با نقاط
-      ctx.beginPath();
-      priceHistory.forEach((p,i)=>{
-        const x = (i/(priceHistory.length-1))*canvas.width;
-        const y = canvas.height - ((p - minPrice)/(maxPrice-minPrice||1))*canvas.height;
-        if(i===0) ctx.moveTo(x,y);
-        else {
-          const prevX = ((i-1)/(priceHistory.length-1))*canvas.width;
-          const prevY = canvas.height - ((priceHistory[i-1] - minPrice)/(maxPrice-minPrice||1))*canvas.height;
-          const midX = (prevX + x)/2;
-          const midY = (prevY + y)/2;
-          ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+    // بروز رسانی دشمن‌ها
+    function updateEnemies(dt){
+      for(let i=enemies.length-1;i>=0;i--){
+        const e = enemies[i];
+        // حرکت به سمت بازیکن
+        const dir = player.position.clone().sub(e.position);
+        const dist = dir.length();
+        if(dist>0.2) {
+          dir.normalize();
+          e.position.add(dir.multiplyScalar(e.speed*dt*60));
         }
-      });
-      ctx.strokeStyle = "#4BC0C0";
-      ctx.lineWidth = 3;
-      ctx.shadowColor = "#06b6d4";
-      ctx.shadowBlur = 5;
-      ctx.stroke();
-
-      // نقاط کوچک روی خط
-      priceHistory.forEach((p,i)=>{
-        const x = (i/(priceHistory.length-1))*canvas.width;
-        const y = canvas.height - ((p - minPrice)/(maxPrice-minPrice||1))*canvas.height;
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, 2*Math.PI);
-        ctx.fillStyle = "#22d3ee";
-        ctx.fill();
-      });
+        // برخورد به بازیکن
+        if(e.position.distanceTo(player.position) < 0.9){
+          // ضربه به بازیکن
+          playerHP -= 0.18; // ضربه پیوسته
+          if(playerHP<=0){ playerHP = 0; gameOver(); }
+        }
+        if(e.health<=0){
+          scene.remove(e); enemies.splice(i,1); score+=10; updateHUD();
+        }
+      }
     }
 
-    setInterval(() => {
-      if(gameDiv.style.display === "flex") updatePrice();
-    },1500);
+    function updateProjectiles(dt){
+      for(let i=projectiles.length-1;i>=0;i--){
+        const p = projectiles[i];
+        // حرکت
+        const move = p.dir.clone().multiplyScalar(p.speed*dt*60);
+        p.position.add(move);
+        if(p.type==='caco'){
+          // حرکت قوسی: life افزایش و Y تغییر
+          p.life += dt*60;
+          p.position.y = 0.5 + Math.sin(p.life*0.12) * 0.8;
+        }
+        // برخورد با دشمن
+        for(let j=enemies.length-1;j>=0;j--){
+          const e = enemies[j];
+          if(e.position.distanceTo(p.position) < 1.1){
+            // اثر متفاوت هر میوه
+            if(p.type==='luffy'){
+              e.health -= 20; // آسیب شدید
+              // هل دادن
+              const knock = e.position.clone().sub(player.position).normalize().multiplyScalar(1.6);
+              e.position.add(knock);
+            } else if(p.type==='caco'){
+              e.health -= 14;
+              // کند شدن کوتاه
+              e.speed *= 0.6;
+            }
+            // حذف پروجکتایل
+            scene.remove(p); projectiles.splice(i,1);
+            break;
+          }
+        }
+        // عمر پروژه
+        if(p.position.distanceTo(player.position) > 40){ scene.remove(p); projectiles.splice(i,1); }
+      }
+    }
 
-    menuDiv.style.display = "flex";
-  </script>
-</body>
+    // برخورد با میوه‌ها و جمع کردن
+    function updateFruits(){
+      for(let i=fruits.length-1;i>=0;i--){
+        const f = fruits[i];
+        if(f.position.distanceTo(player.position) < 1.1){
+          // برداشتن میوه — دادن امتیاز و بوف کوچک
+          if(f.type==='luffy'){
+            score += 6; // امتیاز
+            // کوچکی: افزایش قدرت حمله لوفی برای چند ثانیه (اینجا ساده: افزایش ضرر پروژه)
+            // اما برای سبک بودن، اینجا فقط امتیاز و افکت بصری
+          } else {
+            score += 6;
+          }
+          scene.remove(f); fruits.splice(i,1); updateHUD();
+        }
+      }
+    }
+
+    function updateHUD(){ hpEl.textContent = Math.floor(playerHP); scEl.textContent = score; if(score>high){ high = score; localStorage.setItem('onepiece_high', high); highEl.textContent = high; }}
+
+    let lastSpawn = 0; let time=0; function gameLoop(t){
+      const dt = Math.min(0.032, (t - (time||t))/1000);
+      time = t;
+
+      updatePlayer(dt);
+      updateEnemies(dt);
+      updateProjectiles(dt);
+      updateFruits();
+      updateHUD();
+
+      // تولید دشمن و میوه گاه‌گاهی
+      lastSpawn += dt;
+      if(lastSpawn > 2.1){
+        lastSpawn = 0;
+        // هر بار یا دشمن یا میوه
+        if(Math.random() < 0.65){
+          const x = (Math.random()-0.5)*40; const z = (Math.random()-0.5)*40; spawnEnemy(new THREE.Vector3(x,0.7,z));
+        } else {
+          const x = (Math.random()-0.5)*20; const z = (Math.random()-0.5)*20; const type = Math.random()<0.5 ? 'luffy' : 'caco'; makeFruit(type, new THREE.Vector3(x,0.35,z));
+        }
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(gameLoop);
+    }
+
+    function gameOver(){
+      alert('تمام شد! امتیاز: '+score+' — بازی دوباره ریفرش کن');
+      if(score>high) { localStorage.setItem('onepiece_high', score); }
+      // ریست ساده
+      location.reload();
+    }
+
+    // اولین دشمن و میوه برای شروع
+    for(let i=0;i<2;i++){ spawnEnemy(new THREE.Vector3((Math.random()-0.5)*12,0.7,(Math.random()-0.5)*12)); }
+    makeFruit('luffy', new THREE.Vector3(3,0.35,3)); makeFruit('caco', new THREE.Vector3(-3,0.35,3));
+
+    // ریسایز
+    window.addEventListener('resize', ()=>{ renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
+
+    // شروع
+    camera.position.copy(player.position.clone().add(camOffset));
+    camera.lookAt(player.position);
+    requestAnimationFrame(gameLoop);
+  </script></body>
 </html>
