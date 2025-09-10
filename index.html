@@ -16,7 +16,7 @@
     .btn {user-select:none; touch-action:none; font-weight:bold; padding:10px 12px; border-radius:8px; margin:6px; background:rgba(255,255,255,0.06); color:#fff}
     /* جوی‌استیک برای موبایل */
     #joystick {
-      position: absolute; left: 20px; bottom: 100px; z-index: 21;
+      position: absolute; left: 20px; bottom: 120px; z-index: 21;
       width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       touch-action: none;
@@ -26,7 +26,7 @@
       touch-action: none;
     }
     /* کنترل حمله پایین */
-    .attack-pad{position:absolute; right:20px; bottom:100px; z-index:21; display:flex;flex-direction:column; gap:8px}
+    .attack-pad{position:absolute; right:20px; bottom:120px; z-index:21; display:flex;flex-direction:column; gap:8px}
     .attack-pad .btn{width:80px; height:50px; font-size:14px;}
     /* کنترل چرخش دوربین */
     .camera-controls {
@@ -73,9 +73,9 @@
     // بازی سوم شخص ساده — گرافیک پایین، بهینه برای موبایل
     const canvas = document.getElementById('gameCanvas');
     const renderer = new THREE.WebGLRenderer({canvas, antialias:false});
-    renderer.setPixelRatio(window.devicePixelRatio ? Math.min(window.devicePixelRatio, 1.5) : 1);
+    renderer.setPixelRatio(window.devicePixelRatio ? Math.min(window.devicePixelRatio, 1.2) : 1); // کاهش برای سرعت بیشتر
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = false; // بدون سایه برای سبک بودن
+    renderer.shadowMap.enabled = false;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a1320);
@@ -94,7 +94,6 @@
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.2,0.5), new THREE.MeshBasicMaterial({color}));
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), new THREE.MeshBasicMaterial({color:0xffffff}));
-      head.material = new THREE.MeshBasicMaterial({color}); // تصحیح: head هم color
       head.position.y = 1.05;
       body.position.y = 0.2;
       const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.6,0.2), new THREE.MeshBasicMaterial({color}));
@@ -112,9 +111,9 @@
     scene.add(player);
 
     // تنظیمات دوربین سوم شخص: افست قابل چرخش
-    let camDistance = 7; // فاصله دوربین
+    let camDistance = 7;
     let camHeight = 4;
-    let camAngle = 0; // زاویه چرخش افقی
+    let camAngle = 0;
     const camOffset = new THREE.Vector3(0, camHeight, camDistance);
 
     // دشمن‌ها
@@ -123,8 +122,9 @@
       const e = makeHumanoid(0x5588ff);
       e.position.copy(pos);
       e.health = 30;
-      e.speed = 0.018 + Math.random()*0.02;
-      e.lastHitTime = 0; // برای جلوگیری از آسیب مکرر
+      e.speed = 0.035 + Math.random()*0.015; // افزایش سرعت دشمن
+      e.lastHitTime = 0;
+      e.normalSpeed = e.speed; // برای restore بعد slow
       scene.add(e);
       enemies.push(e);
     }
@@ -136,7 +136,7 @@
       const s = new THREE.Mesh(new THREE.SphereGeometry(0.35,8,6), new THREE.MeshBasicMaterial({color}));
       s.position.copy(pos);
       s.type = type;
-      s.userData = { collected: false }; // جلوگیری از جمع چندباره
+      s.userData = { collected: false };
       scene.add(s);
       fruits.push(s);
     }
@@ -148,9 +148,8 @@
       const p = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,1.8), new THREE.MeshBasicMaterial({color:0xff6666}));
       p.position.copy(origin);
       p.dir = dir.clone().normalize();
-      p.speed = 0.7;
+      p.speed = 0.8; // کمی سریع‌تر
       p.type = 'luffy';
-      p.userData = { life: 0 }; // برای انیمیشن اگر لازم
       scene.add(p);
       projectiles.push(p);
     }
@@ -160,7 +159,7 @@
       p.rotation.x = Math.PI/2;
       p.position.copy(origin);
       p.dir = dir.clone().normalize();
-      p.speed = 0.6;
+      p.speed = 0.7; // کمی سریع‌تر
       p.type = 'caco';
       p.life = 0;
       scene.add(p);
@@ -169,37 +168,36 @@
 
     // ورودی‌ها
     const input = {left:0, right:0, up:0, down:0, attackL:false, attackC:false};
-    let attackCooldown = 0; // برای جلوگیری از اسپم
+    let attackCooldown = 0;
+
+    // فلگ‌های چرخش دوربین
+    let camLeftPressed = false;
+    let camRightPressed = false;
 
     // بایند دکمه‌های حمله
     function bindBtn(id, keyName){
       const el = document.getElementById(id);
       let pressed = false;
-      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); if(!pressed){ pressed=true; input[keyName]=true; } });
+      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); pressed=true; input[keyName]=true; });
       el.addEventListener('touchend', (e)=>{ e.preventDefault(); pressed=false; input[keyName]=false; });
-      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); if(!pressed){ pressed=true; input[keyName]=true; } });
+      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); pressed=true; input[keyName]=true; });
       el.addEventListener('mouseup', (e)=>{ e.preventDefault(); pressed=false; input[keyName]=false; });
     }
     bindBtn('attackL','attackL');
     bindBtn('attackC','attackC');
 
-    // کنترل‌های چرخش دوربین
-    function bindCamBtn(id, dir){
+    // بایند دکمه‌های دوربین (بهبود: فلگ global)
+    function bindCamBtn(id, isLeft){
       const el = document.getElementById(id);
-      let pressed = false;
-      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); pressed=true; });
-      el.addEventListener('touchend', (e)=>{ e.preventDefault(); pressed=false; });
-      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); pressed=true; });
-      el.addEventListener('mouseup', (e)=>{ e.preventDefault(); pressed=false; });
-      // لوپ برای حرکت مداوم
-      const loop = () => { if(pressed){ camAngle += dir * 0.05; requestAnimationFrame(loop); } };
-      el.addEventListener('touchstart', loop);
-      el.addEventListener('mousedown', loop);
+      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); if(isLeft) camLeftPressed=true; else camRightPressed=true; });
+      el.addEventListener('touchend', (e)=>{ e.preventDefault(); if(isLeft) camLeftPressed=false; else camRightPressed=false; });
+      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); if(isLeft) camLeftPressed=true; else camRightPressed=true; });
+      el.addEventListener('mouseup', (e)=>{ e.preventDefault(); if(isLeft) camLeftPressed=false; else camRightPressed=false; });
     }
-    bindCamBtn('camLeft', -1);
-    bindCamBtn('camRight', 1);
+    bindCamBtn('camLeft', true);
+    bindCamBtn('camRight', false);
 
-    // کیبورد (برای دسکتاپ)
+    // کیبورد
     window.addEventListener('keydown', (e)=>{
       if(e.key==='a' || e.key==='ArrowLeft') input.left = 1;
       if(e.key==='d' || e.key==='ArrowRight') input.right = 1;
@@ -217,7 +215,7 @@
       if(e.key==='k') input.attackC = false;
     });
 
-    // جوی‌استیک ساده برای موبایل
+    // جوی‌استیک
     const joystick = document.getElementById('joystick');
     const knob = document.getElementById('joystick-knob');
     let joystickActive = false;
@@ -253,23 +251,25 @@
       const dx = clientX - joystickCenter.x;
       const dy = clientY - joystickCenter.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const maxDist = 30; // شعاع جوی‌استیک
+      const maxDist = 35; // کمی افزایش برای حساسیت بهتر
       if (dist > maxDist) {
-        joystickVector.x = (dx / dist) * maxDist;
-        joystickVector.y = (dy / dist) * maxDist;
+        const normX = dx / dist;
+        const normY = dy / dist;
+        joystickVector.x = normX * maxDist;
+        joystickVector.y = normY * maxDist;
       } else {
         joystickVector.x = dx;
         joystickVector.y = dy;
       }
       knob.style.transform = `translate(${joystickVector.x}px, ${joystickVector.y}px)`;
-      // تبدیل به ورودی
-      input.left = joystickVector.x < -10 ? 1 : 0;
-      input.right = joystickVector.x > 10 ? 1 : 0;
-      input.up = joystickVector.y < -10 ? 1 : 0;
-      input.down = joystickVector.y > 10 ? 1 : 0;
+      // ورودی با threshold بیشتر برای جلوگیری از حساسیت کم
+      input.left = joystickVector.x < -15 ? 1 : 0;
+      input.right = joystickVector.x > 15 ? 1 : 0;
+      input.up = joystickVector.y < -15 ? 1 : 0; // y منفی برای حرکت جلو (up)
+      input.down = joystickVector.y > 15 ? 1 : 0;
     }
 
-    // برای دسکتاپ: drag ماوس برای چرخش دوربین
+    // Mouse drag برای دسکتاپ
     let mouseDown = false;
     let lastMouseX = 0;
     canvas.addEventListener('mousedown', (e) => {
@@ -279,10 +279,11 @@
     canvas.addEventListener('mousemove', (e) => {
       if (!mouseDown) return;
       const deltaX = e.clientX - lastMouseX;
-      camAngle += deltaX * 0.01;
+      camAngle += deltaX * 0.005; // حساسیت کمتر برای کنترل بهتر
       lastMouseX = e.clientX;
     });
     canvas.addEventListener('mouseup', () => { mouseDown = false; });
+    canvas.addEventListener('mouseleave', () => { mouseDown = false; });
 
     // ویژگی‌های بازیکن
     let playerHP = 100; let score = 0;
@@ -295,7 +296,7 @@
     // بروزرسانی بازیکن
     const velocity = new THREE.Vector3();
     function updatePlayer(dt){
-      const speed = 3.4;
+      const speed = 5.0; // افزایش سرعت حرکت
       let move = new THREE.Vector3();
       if(input.left) move.x -= 1;
       if(input.right) move.x += 1;
@@ -306,38 +307,40 @@
         velocity.x = move.x * speed;
         velocity.z = move.z * speed;
       } else {
-        velocity.x = THREE.MathUtils.lerp(velocity.x, 0, 0.2);
-        velocity.z = THREE.MathUtils.lerp(velocity.z, 0, 0.2);
+        velocity.x = THREE.MathUtils.lerp(velocity.x, 0, 0.3); // سریع‌تر توقف
+        velocity.z = THREE.MathUtils.lerp(velocity.z, 0, 0.3);
       }
 
       player.position.x += velocity.x * dt;
       player.position.z += velocity.z * dt;
 
-      // چرخش بازیکن بر اساس حرکت
+      // چرخش بازیکن
       if(move.length() > 0){
         const angle = Math.atan2(move.x, -move.z);
-        player.rotation.y = THREE.MathUtils.lerpAngle(player.rotation.y, angle, 0.18);
+        player.rotation.y = THREE.MathUtils.lerpAngle(player.rotation.y, angle, 0.25); // سریع‌تر چرخش
       }
 
-      // بروزرسانی دوربین با چرخش
+      // بروزرسانی دوربین
+      if(camLeftPressed) camAngle -= 1.5 * dt; // سرعت چرخش مناسب (1.5 rad/sec)
+      if(camRightPressed) camAngle += 1.5 * dt;
       const camPos = new THREE.Vector3(0, camHeight, camDistance);
       camPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), camAngle);
       const desired = player.position.clone().add(camPos);
-      camera.position.lerp(desired, 0.12);
+      camera.position.lerp(desired, 0.15); // کمی سریع‌تر follow
       camera.lookAt(player.position.x, player.position.y + 0.8, player.position.z);
 
-      // حملات با کول‌داون
+      // حملات
       attackCooldown -= dt;
       if(input.attackL && attackCooldown <= 0){
         input.attackL = false;
-        attackCooldown = 0.5; // نیم ثانیه کول‌داون
+        attackCooldown = 0.4; // کول‌داون کمتر
         const front = new THREE.Vector3(0, 0.8, -1).applyQuaternion(player.quaternion).add(player.position);
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
         spawnLuffyAttack(front, dir);
       }
       if(input.attackC && attackCooldown <= 0){
         input.attackC = false;
-        attackCooldown = 0.5;
+        attackCooldown = 0.4;
         const front = new THREE.Vector3(0, 0.8, -1).applyQuaternion(player.quaternion).add(player.position);
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
         spawnCacoAttack(front, dir);
@@ -346,16 +349,23 @@
 
     // بروزرسانی دشمن‌ها
     function updateEnemies(dt){
+      const now = performance.now() / 1000;
       for(let i = enemies.length - 1; i >= 0; i--){
         const e = enemies[i];
         const dir = player.position.clone().sub(e.position);
         const dist = dir.length();
         if(dist > 0.2){
           dir.normalize();
-          e.position.add(dir.multiplyScalar(e.speed * dt));
+          let currentSpeed = e.normalSpeed;
+          if(e.slowUntil && now < e.slowUntil) {
+            currentSpeed *= 0.6;
+          } else if(e.slowUntil) {
+            e.speed = e.normalSpeed; // restore
+            delete e.slowUntil;
+          }
+          e.position.add(dir.multiplyScalar(currentSpeed * dt));
         }
-        // برخورد: فقط هر ثانیه یکبار آسیب
-        const now = performance.now() / 1000;
+        // برخورد
         if(e.position.distanceTo(player.position) < 0.9 && now - e.lastHitTime > 1){
           playerHP -= 10;
           e.lastHitTime = now;
@@ -379,10 +389,10 @@
         const move = p.dir.clone().multiplyScalar(p.speed * dt);
         p.position.add(move);
         if(p.type === 'caco'){
-          p.life += dt * 10; // سرعت انیمیشن
+          p.life += dt * 8; // تنظیم arc
           p.position.y = Math.max(0.35, 0.5 + Math.sin(p.life) * 0.8);
         }
-        // برخورد با دشمن
+        // برخورد
         for(let j = enemies.length - 1; j >= 0; j--){
           const e = enemies[j];
           if(e.position.distanceTo(p.position) < 1.1){
@@ -392,8 +402,7 @@
               e.position.add(knock);
             } else if(p.type === 'caco'){
               e.health -= 14;
-              e.speed *= 0.6;
-              setTimeout(() => { e.speed /= 0.6; }, 2000); // برگشت سرعت بعد 2 ثانیه
+              e.slowUntil = performance.now() / 1000 + 2; // slow با زمان
             }
             scene.remove(p);
             projectiles.splice(i, 1);
@@ -430,10 +439,10 @@
       }
     }
 
-    let lastSpawn = 0; let time = 0;
-    function gameLoop(t){
-      const dt = Math.min(0.032, (t - time) / 1000);
-      time = t;
+    let lastSpawn = 0; let prevTime = 0;
+    function gameLoop(currentTime){
+      const dt = Math.min(1/30, (currentTime - prevTime) / 1000); // cap بالاتر برای سرعت
+      prevTime = currentTime;
 
       updatePlayer(dt);
       updateEnemies(dt);
@@ -443,7 +452,7 @@
 
       // اسپاون
       lastSpawn += dt;
-      if(lastSpawn > 2.1){
+      if(lastSpawn > 1.8){ // کمی سریع‌تر اسپاون
         lastSpawn = 0;
         if(Math.random() < 0.65){
           const x = (Math.random() - 0.5) * 40;
@@ -469,7 +478,7 @@
       location.reload();
     }
 
-    // شروع اولیه
+    // شروع
     for(let i = 0; i < 2; i++){
       spawnEnemy(new THREE.Vector3((Math.random() - 0.5) * 12, 0.7, (Math.random() - 0.5) * 12));
     }
@@ -483,7 +492,7 @@
       camera.updateProjectionMatrix();
     });
 
-    // موقعیت اولیه دوربین
+    // موقعیت اولیه
     const initialCamPos = player.position.clone().add(camOffset);
     camera.position.copy(initialCamPos);
     camera.lookAt(player.position);
