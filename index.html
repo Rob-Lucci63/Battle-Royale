@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
@@ -14,45 +13,69 @@
       background: rgba(0,0,0,0.35); padding:8px;border-radius:8px;
     }
     .hud {position:absolute; right:8px; top:8px; z-index:20; text-align:left}
-    .btn {user-select:none; touch-action:none; font-weight:bold; padding:10px 12px; border-radius:8px; margin:6px; background:rgba(255,255,255,0.06); color:#fff}/* کنترل لمسی پایین */
-.touch-pad {position: absolute; left: 10px; bottom: 10px; z-index: 21; display:flex; gap:8px}
-.pad-col{display:flex;flex-direction:column;gap:8px}
-.big-btn{width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center}
-.attack-pad{position:absolute; right:10px; bottom:10px; z-index:21; display:flex;flex-direction:column; gap:8px}
-
-.label{font-size:13px; opacity:0.9}
-.info {font-size:14px}
-
-/* دکمه‌های کوچک برای دسکتاپ */
-.keyboard-help{position:absolute; left:8px; bottom:8px; z-index:20; background:rgba(0,0,0,0.35); padding:8px;border-radius:8px}
-
+    .btn {user-select:none; touch-action:none; font-weight:bold; padding:10px 12px; border-radius:8px; margin:6px; background:rgba(255,255,255,0.06); color:#fff}
+    /* جوی‌استیک برای موبایل */
+    #joystick {
+      position: absolute; left: 20px; bottom: 100px; z-index: 21;
+      width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: none;
+    }
+    #joystick-knob {
+      width: 40px; height: 40px; background: rgba(255,255,255,0.3); border-radius: 50%;
+      touch-action: none;
+    }
+    /* کنترل حمله پایین */
+    .attack-pad{position:absolute; right:20px; bottom:100px; z-index:21; display:flex;flex-direction:column; gap:8px}
+    .attack-pad .btn{width:80px; height:50px; font-size:14px;}
+    /* کنترل چرخش دوربین */
+    .camera-controls {
+      position: absolute; left: 50%; bottom: 20px; z-index: 21;
+      transform: translateX(-50%); display: flex; gap: 10px;
+    }
+    .camera-btn {
+      width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .label{font-size:13px; opacity:0.9}
+    .info {font-size:14px}
+    /* راهنما کیبورد */
+    .keyboard-help{position:absolute; left:8px; bottom:8px; z-index:20; background:rgba(0,0,0,0.35); padding:8px;border-radius:8px; display:none;} /* مخفی برای موبایل */
+    @media (min-width: 768px) {.keyboard-help{display:block;}}
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>  <div class="hud">
+  <canvas id="gameCanvas"></canvas>
+  <div class="hud">
     <div class="ui">
       <div class="label">قلب‌ها: <span id="hp">100</span></div>
       <div class="label">امتیاز: <span id="score">0</span></div>
       <div class="label">High: <span id="high">0</span></div>
     </div>
-  </div>  <div class="touch-pad" id="touchPad">
-    <div class="pad-col">
-      <div class="btn big-btn" id="btnUp">↑</div>
-      <div style="display:flex;gap:8px;justify-content:center">
-        <div class="btn big-btn" id="btnLeft">←</div>
-        <div class="btn big-btn" id="btnDown">↓</div>
-        <div class="btn big-btn" id="btnRight">→</div>
-      </div>
-    </div>
-  </div>  <div class="attack-pad">
-    <div class="btn" id="attackL">حمله لوفی</div>
-    <div class="btn" id="attackC">حمله کاکو (زرافه)</div>
-  </div>  <div class="keyboard-help">WASD یا ←↑→↓ حرکت — J حمله لوفی — K حمله کاکو</div>  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>  <script>
-    // بازی سوم شخص ساده — گرافیک پایین
+  </div>
+  <!-- جوی‌استیک -->
+  <div id="joystick">
+    <div id="joystick-knob"></div>
+  </div>
+  <!-- دکمه‌های حمله -->
+  <div class="attack-pad">
+    <div class="btn" id="attackL">لوفی</div>
+    <div class="btn" id="attackC">کاکو</div>
+  </div>
+  <!-- کنترل‌های چرخش دوربین -->
+  <div class="camera-controls">
+    <div class="camera-btn" id="camLeft">←</div>
+    <div class="camera-btn" id="camRight">→</div>
+  </div>
+  <div class="keyboard-help">WASD یا ←↑→↓ حرکت — J حمله لوفی — K حمله کاکو — Mouse drag برای چرخش دوربین</div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+  <script>
+    // بازی سوم شخص ساده — گرافیک پایین، بهینه برای موبایل
     const canvas = document.getElementById('gameCanvas');
     const renderer = new THREE.WebGLRenderer({canvas, antialias:false});
     renderer.setPixelRatio(window.devicePixelRatio ? Math.min(window.devicePixelRatio, 1.5) : 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = false; // بدون سایه برای سبک بودن
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a1320);
@@ -66,14 +89,12 @@
     );
     ground.rotation.x = -Math.PI/2; scene.add(ground);
 
-    // ساده بودن متریال — MeshBasicMaterial (بدون نور) برای سبک بودن
-
-    // بازیکن — گروه آدمی ساده
+    // تابعی برای ساخت humanoid ساده
     function makeHumanoid(color){
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.2,0.5), new THREE.MeshBasicMaterial({color}));
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), new THREE.MeshBasicMaterial({color:0xffffff}));
-      head.material = new THREE.MeshBasicMaterial({color});
+      head.material = new THREE.MeshBasicMaterial({color}); // تصحیح: head هم color
       head.position.y = 1.05;
       body.position.y = 0.2;
       const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.6,0.2), new THREE.MeshBasicMaterial({color}));
@@ -90,16 +111,20 @@
     player.position.set(0,0.7,0);
     scene.add(player);
 
-    // دوربین سوم شخص: پشت و بالاتر از بازیکن
-    const camOffset = new THREE.Vector3(0,3.2,6.2);
+    // تنظیمات دوربین سوم شخص: افست قابل چرخش
+    let camDistance = 7; // فاصله دوربین
+    let camHeight = 4;
+    let camAngle = 0; // زاویه چرخش افقی
+    const camOffset = new THREE.Vector3(0, camHeight, camDistance);
 
-    // موجودات: دشمن‌ها
+    // دشمن‌ها
     const enemies = [];
     function spawnEnemy(pos){
       const e = makeHumanoid(0x5588ff);
       e.position.copy(pos);
       e.health = 30;
       e.speed = 0.018 + Math.random()*0.02;
+      e.lastHitTime = 0; // برای جلوگیری از آسیب مکرر
       scene.add(e);
       enemies.push(e);
     }
@@ -111,26 +136,26 @@
       const s = new THREE.Mesh(new THREE.SphereGeometry(0.35,8,6), new THREE.MeshBasicMaterial({color}));
       s.position.copy(pos);
       s.type = type;
+      s.userData = { collected: false }; // جلوگیری از جمع چندباره
       scene.add(s);
       fruits.push(s);
     }
 
-    // حملات فعال
+    // پرتابه‌ها
     const projectiles = [];
 
     function spawnLuffyAttack(origin, dir){
-      // مکعب کشسان که سریع جلو میره
       const p = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,1.8), new THREE.MeshBasicMaterial({color:0xff6666}));
       p.position.copy(origin);
       p.dir = dir.clone().normalize();
       p.speed = 0.7;
       p.type = 'luffy';
+      p.userData = { life: 0 }; // برای انیمیشن اگر لازم
       scene.add(p);
       projectiles.push(p);
     }
 
     function spawnCacoAttack(origin, dir){
-      // استوانه‌ای که قوس داره (پرش زرافه‌ای)
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,1.6,6), new THREE.MeshBasicMaterial({color:0xffd266}));
       p.rotation.x = Math.PI/2;
       p.position.copy(origin);
@@ -142,165 +167,272 @@
       projectiles.push(p);
     }
 
-    // کنترل‌ها
-    const input = {left:false,right:false,up:false,down:false, attackL:false, attackC:false};
+    // ورودی‌ها
+    const input = {left:0, right:0, up:0, down:0, attackL:false, attackC:false};
+    let attackCooldown = 0; // برای جلوگیری از اسپم
 
-    // دکمه‌ها
+    // بایند دکمه‌های حمله
     function bindBtn(id, keyName){
       const el = document.getElementById(id);
-      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); input[keyName]=true; });
-      el.addEventListener('touchend', (e)=>{ e.preventDefault(); input[keyName]=false; });
-      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); input[keyName]=true; });
-      el.addEventListener('mouseup', (e)=>{ e.preventDefault(); input[keyName]=false; });
+      let pressed = false;
+      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); if(!pressed){ pressed=true; input[keyName]=true; } });
+      el.addEventListener('touchend', (e)=>{ e.preventDefault(); pressed=false; input[keyName]=false; });
+      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); if(!pressed){ pressed=true; input[keyName]=true; } });
+      el.addEventListener('mouseup', (e)=>{ e.preventDefault(); pressed=false; input[keyName]=false; });
     }
+    bindBtn('attackL','attackL');
+    bindBtn('attackC','attackC');
 
-    bindBtn('btnLeft','left'); bindBtn('btnRight','right'); bindBtn('btnUp','up'); bindBtn('btnDown','down');
-    bindBtn('attackL','attackL'); bindBtn('attackC','attackC');
+    // کنترل‌های چرخش دوربین
+    function bindCamBtn(id, dir){
+      const el = document.getElementById(id);
+      let pressed = false;
+      el.addEventListener('touchstart', (e)=>{ e.preventDefault(); pressed=true; });
+      el.addEventListener('touchend', (e)=>{ e.preventDefault(); pressed=false; });
+      el.addEventListener('mousedown', (e)=>{ e.preventDefault(); pressed=true; });
+      el.addEventListener('mouseup', (e)=>{ e.preventDefault(); pressed=false; });
+      // لوپ برای حرکت مداوم
+      const loop = () => { if(pressed){ camAngle += dir * 0.05; requestAnimationFrame(loop); } };
+      el.addEventListener('touchstart', loop);
+      el.addEventListener('mousedown', loop);
+    }
+    bindCamBtn('camLeft', -1);
+    bindCamBtn('camRight', 1);
 
-    // صفات بازیکن
-    let playerHP = 100; let score = 0; const hpEl = document.getElementById('hp'); const scEl = document.getElementById('score'); const highEl = document.getElementById('high');
-    let high = parseInt(localStorage.getItem('onepiece_high')||0); highEl.textContent = high;
-
-    // کیبورد
+    // کیبورد (برای دسکتاپ)
     window.addEventListener('keydown', (e)=>{
-      if(e.key==='a' || e.key==='ArrowLeft') input.left = true;
-      if(e.key==='d' || e.key==='ArrowRight') input.right = true;
-      if(e.key==='w' || e.key==='ArrowUp') input.up = true;
-      if(e.key==='s' || e.key==='ArrowDown') input.down = true;
+      if(e.key==='a' || e.key==='ArrowLeft') input.left = 1;
+      if(e.key==='d' || e.key==='ArrowRight') input.right = 1;
+      if(e.key==='w' || e.key==='ArrowUp') input.up = 1;
+      if(e.key==='s' || e.key==='ArrowDown') input.down = 1;
       if(e.key==='j') input.attackL = true;
       if(e.key==='k') input.attackC = true;
     });
     window.addEventListener('keyup', (e)=>{
-      if(e.key==='a' || e.key==='ArrowLeft') input.left = false;
-      if(e.key==='d' || e.key==='ArrowRight') input.right = false;
-      if(e.key==='w' || e.key==='ArrowUp') input.up = false;
-      if(e.key==='s' || e.key==='ArrowDown') input.down = false;
+      if(e.key==='a' || e.key==='ArrowLeft') input.left = 0;
+      if(e.key==='d' || e.key==='ArrowRight') input.right = 0;
+      if(e.key==='w' || e.key==='ArrowUp') input.up = 0;
+      if(e.key==='s' || e.key==='ArrowDown') input.down = 0;
       if(e.key==='j') input.attackL = false;
       if(e.key==='k') input.attackC = false;
     });
 
-    // لوجیک حرکت بازیکن
+    // جوی‌استیک ساده برای موبایل
+    const joystick = document.getElementById('joystick');
+    const knob = document.getElementById('joystick-knob');
+    let joystickActive = false;
+    let joystickCenter = {x: 0, y: 0};
+    let joystickVector = {x: 0, y: 0};
+
+    joystick.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      joystickActive = true;
+      const touch = e.touches[0];
+      const rect = joystick.getBoundingClientRect();
+      joystickCenter.x = rect.left + rect.width / 2;
+      joystickCenter.y = rect.top + rect.height / 2;
+      updateJoystick(touch.clientX, touch.clientY);
+    });
+
+    joystick.addEventListener('touchmove', (e) => {
+      if (!joystickActive) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      updateJoystick(touch.clientX, touch.clientY);
+    });
+
+    joystick.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      joystickActive = false;
+      joystickVector = {x: 0, y: 0};
+      knob.style.transform = 'translate(0, 0)';
+      input.left = 0; input.right = 0; input.up = 0; input.down = 0;
+    });
+
+    function updateJoystick(clientX, clientY) {
+      const dx = clientX - joystickCenter.x;
+      const dy = clientY - joystickCenter.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = 30; // شعاع جوی‌استیک
+      if (dist > maxDist) {
+        joystickVector.x = (dx / dist) * maxDist;
+        joystickVector.y = (dy / dist) * maxDist;
+      } else {
+        joystickVector.x = dx;
+        joystickVector.y = dy;
+      }
+      knob.style.transform = `translate(${joystickVector.x}px, ${joystickVector.y}px)`;
+      // تبدیل به ورودی
+      input.left = joystickVector.x < -10 ? 1 : 0;
+      input.right = joystickVector.x > 10 ? 1 : 0;
+      input.up = joystickVector.y < -10 ? 1 : 0;
+      input.down = joystickVector.y > 10 ? 1 : 0;
+    }
+
+    // برای دسکتاپ: drag ماوس برای چرخش دوربین
+    let mouseDown = false;
+    let lastMouseX = 0;
+    canvas.addEventListener('mousedown', (e) => {
+      mouseDown = true;
+      lastMouseX = e.clientX;
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      if (!mouseDown) return;
+      const deltaX = e.clientX - lastMouseX;
+      camAngle += deltaX * 0.01;
+      lastMouseX = e.clientX;
+    });
+    canvas.addEventListener('mouseup', () => { mouseDown = false; });
+
+    // ویژگی‌های بازیکن
+    let playerHP = 100; let score = 0;
+    const hpEl = document.getElementById('hp');
+    const scEl = document.getElementById('score');
+    const highEl = document.getElementById('high');
+    let high = parseInt(localStorage.getItem('onepiece_high') || 0);
+    highEl.textContent = high;
+
+    // بروزرسانی بازیکن
     const velocity = new THREE.Vector3();
     function updatePlayer(dt){
-      const speed = 3.4; // واحد متر/ثانیه
+      const speed = 3.4;
       let move = new THREE.Vector3();
       if(input.left) move.x -= 1;
       if(input.right) move.x += 1;
       if(input.up) move.z -= 1;
       if(input.down) move.z += 1;
-      if(move.length()>0){ move.normalize(); velocity.x = move.x*speed; velocity.z = move.z*speed; }
-      else { velocity.x = THREE.MathUtils.lerp(velocity.x,0,0.2); velocity.z = THREE.MathUtils.lerp(velocity.z,0,0.2); }
+      if(move.length() > 0){
+        move.normalize();
+        velocity.x = move.x * speed;
+        velocity.z = move.z * speed;
+      } else {
+        velocity.x = THREE.MathUtils.lerp(velocity.x, 0, 0.2);
+        velocity.z = THREE.MathUtils.lerp(velocity.z, 0, 0.2);
+      }
 
       player.position.x += velocity.x * dt;
       player.position.z += velocity.z * dt;
 
-      // دوربین دنبال کن
-      const desired = player.position.clone().add(camOffset);
-      camera.position.lerp(desired, 0.12);
-      camera.lookAt(player.position.x, player.position.y+0.8, player.position.z);
-
-      // جهت بازیکن (چرخش ساده)
-      if(move.length()>0){
+      // چرخش بازیکن بر اساس حرکت
+      if(move.length() > 0){
         const angle = Math.atan2(move.x, -move.z);
         player.rotation.y = THREE.MathUtils.lerpAngle(player.rotation.y, angle, 0.18);
       }
 
-      // نبرد: حمله‌ها
-      if(input.attackL){ // لوفی — تیر مستقیم
-        input.attackL = false; // تک شات
-        const front = new THREE.Vector3(0,0.8,-1).applyQuaternion(player.quaternion).add(player.position);
-        const dir = new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);
+      // بروزرسانی دوربین با چرخش
+      const camPos = new THREE.Vector3(0, camHeight, camDistance);
+      camPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), camAngle);
+      const desired = player.position.clone().add(camPos);
+      camera.position.lerp(desired, 0.12);
+      camera.lookAt(player.position.x, player.position.y + 0.8, player.position.z);
+
+      // حملات با کول‌داون
+      attackCooldown -= dt;
+      if(input.attackL && attackCooldown <= 0){
+        input.attackL = false;
+        attackCooldown = 0.5; // نیم ثانیه کول‌داون
+        const front = new THREE.Vector3(0, 0.8, -1).applyQuaternion(player.quaternion).add(player.position);
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
         spawnLuffyAttack(front, dir);
       }
-      if(input.attackC){
+      if(input.attackC && attackCooldown <= 0){
         input.attackC = false;
-        const front = new THREE.Vector3(0,0.8,-1).applyQuaternion(player.quaternion).add(player.position);
-        const dir = new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);
+        attackCooldown = 0.5;
+        const front = new THREE.Vector3(0, 0.8, -1).applyQuaternion(player.quaternion).add(player.position);
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
         spawnCacoAttack(front, dir);
       }
     }
 
-    // بروز رسانی دشمن‌ها
+    // بروزرسانی دشمن‌ها
     function updateEnemies(dt){
-      for(let i=enemies.length-1;i>=0;i--){
+      for(let i = enemies.length - 1; i >= 0; i--){
         const e = enemies[i];
-        // حرکت به سمت بازیکن
         const dir = player.position.clone().sub(e.position);
         const dist = dir.length();
-        if(dist>0.2) {
+        if(dist > 0.2){
           dir.normalize();
-          e.position.add(dir.multiplyScalar(e.speed*dt));
+          e.position.add(dir.multiplyScalar(e.speed * dt));
         }
-        // برخورد به بازیکن
-        if(e.position.distanceTo(player.position) < 0.9){
-          // ضربه به بازیکن
-          playerHP -= 8 * dt; // ضربه پیوسته (مقیاس بر ثانیه)
-          if(playerHP<=0){ playerHP = 0; gameOver(); }
+        // برخورد: فقط هر ثانیه یکبار آسیب
+        const now = performance.now() / 1000;
+        if(e.position.distanceTo(player.position) < 0.9 && now - e.lastHitTime > 1){
+          playerHP -= 10;
+          e.lastHitTime = now;
+          if(playerHP <= 0){
+            playerHP = 0;
+            gameOver();
+          }
         }
-        if(e.health<=0){
-          scene.remove(e); enemies.splice(i,1); score+=10; updateHUD();
+        if(e.health <= 0){
+          scene.remove(e);
+          enemies.splice(i, 1);
+          score += 10;
+          updateHUD();
         }
       }
     }
 
     function updateProjectiles(dt){
-      for(let i=projectiles.length-1;i>=0;i--){
+      for(let i = projectiles.length - 1; i >= 0; i--){
         const p = projectiles[i];
-        // حرکت
-        const move = p.dir.clone().multiplyScalar(p.speed*dt);
+        const move = p.dir.clone().multiplyScalar(p.speed * dt);
         p.position.add(move);
-        if(p.type==='caco'){
-          // حرکت قوسی: life افزایش و Y تغییر
-          p.life += dt;
-          p.position.y = 0.5 + Math.sin(p.life*0.12) * 0.8;
+        if(p.type === 'caco'){
+          p.life += dt * 10; // سرعت انیمیشن
+          p.position.y = Math.max(0.35, 0.5 + Math.sin(p.life) * 0.8);
         }
         // برخورد با دشمن
-        for(let j=enemies.length-1;j>=0;j--){
+        for(let j = enemies.length - 1; j >= 0; j--){
           const e = enemies[j];
           if(e.position.distanceTo(p.position) < 1.1){
-            // اثر متفاوت هر میوه
-            if(p.type==='luffy'){
-              e.health -= 20; // آسیب شدید
-              // هل دادن
+            if(p.type === 'luffy'){
+              e.health -= 20;
               const knock = e.position.clone().sub(player.position).normalize().multiplyScalar(1.6);
               e.position.add(knock);
-            } else if(p.type==='caco'){
+            } else if(p.type === 'caco'){
               e.health -= 14;
-              // کند شدن کوتاه
               e.speed *= 0.6;
+              setTimeout(() => { e.speed /= 0.6; }, 2000); // برگشت سرعت بعد 2 ثانیه
             }
-            // حذف پروجکتایل
-            scene.remove(p); projectiles.splice(i,1);
+            scene.remove(p);
+            projectiles.splice(i, 1);
             break;
           }
         }
-        // عمر پروژه
-        if(p.position.distanceTo(player.position) > 40){ scene.remove(p); projectiles.splice(i,1); }
-      }
-    }
-
-    // برخورد با میوه‌ها و جمع کردن
-    function updateFruits(){
-      for(let i=fruits.length-1;i>=0;i--){
-        const f = fruits[i];
-        if(f.position.distanceTo(player.position) < 1.1){
-          // برداشتن میوه — دادن امتیاز و بوف کوچک
-          if(f.type==='luffy'){
-            score += 6; // امتیاز
-            // کوچکی: افزایش قدرت حمله لوفی برای چند ثانیه (اینجا ساده: افزایش ضرر پروژه)
-            // اما برای سبک بودن، اینجا فقط امتیاز و افکت بصری
-          } else {
-            score += 6;
-          }
-          scene.remove(f); fruits.splice(i,1); updateHUD();
+        if(p.position.distanceTo(player.position) > 40){
+          scene.remove(p);
+          projectiles.splice(i, 1);
         }
       }
     }
 
-    function updateHUD(){ hpEl.textContent = Math.floor(playerHP); scEl.textContent = score; if(score>high){ high = score; localStorage.setItem('onepiece_high', high); highEl.textContent = high; }}
+    function updateFruits(){
+      for(let i = fruits.length - 1; i >= 0; i--){
+        const f = fruits[i];
+        if(!f.userData.collected && f.position.distanceTo(player.position) < 1.1){
+          f.userData.collected = true;
+          score += 6;
+          scene.remove(f);
+          fruits.splice(i, 1);
+          updateHUD();
+        }
+      }
+    }
 
-    let lastSpawn = 0; let time=0; function gameLoop(t){
-      const dt = Math.min(0.032, (t - (time||t))/1000);
+    function updateHUD(){
+      hpEl.textContent = Math.max(0, Math.floor(playerHP));
+      scEl.textContent = score;
+      if(score > high){
+        high = score;
+        localStorage.setItem('onepiece_high', high);
+        highEl.textContent = high;
+      }
+    }
+
+    let lastSpawn = 0; let time = 0;
+    function gameLoop(t){
+      const dt = Math.min(0.032, (t - time) / 1000);
       time = t;
 
       updatePlayer(dt);
@@ -309,15 +441,19 @@
       updateFruits();
       updateHUD();
 
-      // تولید دشمن و میوه گاه‌گاهی
+      // اسپاون
       lastSpawn += dt;
       if(lastSpawn > 2.1){
         lastSpawn = 0;
-        // هر بار یا دشمن یا میوه
         if(Math.random() < 0.65){
-          const x = (Math.random()-0.5)*40; const z = (Math.random()-0.5)*40; spawnEnemy(new THREE.Vector3(x,0.7,z));
+          const x = (Math.random() - 0.5) * 40;
+          const z = (Math.random() - 0.5) * 40;
+          spawnEnemy(new THREE.Vector3(x, 0.7, z));
         } else {
-          const x = (Math.random()-0.5)*20; const z = (Math.random()-0.5)*20; const type = Math.random()<0.5 ? 'luffy' : 'caco'; makeFruit(type, new THREE.Vector3(x,0.35,z));
+          const x = (Math.random() - 0.5) * 20;
+          const z = (Math.random() - 0.5) * 20;
+          const type = Math.random() < 0.5 ? 'luffy' : 'caco';
+          makeFruit(type, new THREE.Vector3(x, 0.35, z));
         }
       }
 
@@ -326,22 +462,32 @@
     }
 
     function gameOver(){
-      alert('تمام شد! امتیاز: '+score+' — بازی دوباره ریفرش کن');
-      if(score>high) { localStorage.setItem('onepiece_high', score); }
-      // ریست ساده
+      alert('تمام شد! امتیاز: ' + score + ' — بازی دوباره شروع کنید');
+      if(score > high){
+        localStorage.setItem('onepiece_high', score);
+      }
       location.reload();
     }
 
-    // اولین دشمن و میوه برای شروع
-    for(let i=0;i<2;i++){ spawnEnemy(new THREE.Vector3((Math.random()-0.5)*12,0.7,(Math.random()-0.5)*12)); }
-    makeFruit('luffy', new THREE.Vector3(3,0.35,3)); makeFruit('caco', new THREE.Vector3(-3,0.35,3));
+    // شروع اولیه
+    for(let i = 0; i < 2; i++){
+      spawnEnemy(new THREE.Vector3((Math.random() - 0.5) * 12, 0.7, (Math.random() - 0.5) * 12));
+    }
+    makeFruit('luffy', new THREE.Vector3(3, 0.35, 3));
+    makeFruit('caco', new THREE.Vector3(-3, 0.35, 3));
 
     // ریسایز
-    window.addEventListener('resize', ()=>{ renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
 
-    // شروع
-    camera.position.copy(player.position.clone().add(camOffset));
+    // موقعیت اولیه دوربین
+    const initialCamPos = player.position.clone().add(camOffset);
+    camera.position.copy(initialCamPos);
     camera.lookAt(player.position);
     requestAnimationFrame(gameLoop);
-  </script></body>
+  </script>
+</body>
 </html>
