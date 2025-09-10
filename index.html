@@ -229,12 +229,12 @@
         const dist = dir.length();
         if(dist>0.2) {
           dir.normalize();
-          e.position.add(dir.multiplyScalar(e.speed*dt*60));
+          e.position.add(dir.multiplyScalar(e.speed*dt));
         }
         // برخورد به بازیکن
         if(e.position.distanceTo(player.position) < 0.9){
           // ضربه به بازیکن
-          playerHP -= 0.18; // ضربه پیوسته
+          playerHP -= 8 * dt; // ضربه پیوسته (مقیاس بر ثانیه)
           if(playerHP<=0){ playerHP = 0; gameOver(); }
         }
         if(e.health<=0){
@@ -247,11 +247,11 @@
       for(let i=projectiles.length-1;i>=0;i--){
         const p = projectiles[i];
         // حرکت
-        const move = p.dir.clone().multiplyScalar(p.speed*dt*60);
+        const move = p.dir.clone().multiplyScalar(p.speed*dt);
         p.position.add(move);
         if(p.type==='caco'){
           // حرکت قوسی: life افزایش و Y تغییر
-          p.life += dt*60;
+          p.life += dt;
           p.position.y = 0.5 + Math.sin(p.life*0.12) * 0.8;
         }
         // برخورد با دشمن
